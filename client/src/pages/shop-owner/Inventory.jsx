@@ -1,0 +1,241 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  HiOutlineMagnifyingGlass,
+  HiOutlineBell,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineUserCircle,
+  HiOutlineFunnel,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
+  HiOutlineSquares2X2,
+  HiOutlineExclamationTriangle,
+  HiOutlineArrowTrendingUp,
+} from 'react-icons/hi2'
+import { useProducts } from '../../context/ProductContext'
+
+export default function ShopOwnerInventory() {
+  const { products, totalProducts, lowStockCount } = useProducts()
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const perPage = 3
+
+  const filtered = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku.toLowerCase().includes(search.toLowerCase()),
+  )
+  const totalPages = Math.ceil(filtered.length / perPage)
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage)
+
+  return (
+    <div className="p-5 sm:p-6 lg:p-8">
+      {/* Top bar */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-bold text-primary sm:text-2xl">Inventory Management</h1>
+        <div className="flex items-center gap-3">
+          <div className="relative hidden sm:block">
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              type="search"
+              placeholder="Search inventory..."
+              className="w-56 rounded-full border border-neutral-border bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
+            <HiOutlineBell className="h-5 w-5" />
+          </button>
+          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
+            <HiOutlineQuestionMarkCircle className="h-5 w-5" />
+          </button>
+          <HiOutlineUserCircle className="h-8 w-8 text-text-muted" />
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
+          <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-light">
+            <HiOutlineSquares2X2 className="h-6 w-6 text-primary" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              Total Products
+            </p>
+            <p className="text-2xl font-bold text-text-dark">
+              {totalProducts.toLocaleString()}
+            </p>
+            <p className="flex items-center gap-1 text-xs font-medium text-tertiary">
+              <HiOutlineArrowTrendingUp className="h-3.5 w-3.5" />
+              +24 this month
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-center gap-4">
+            <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-100">
+              <HiOutlineExclamationTriangle className="h-6 w-6 text-red-500" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-red-600">
+                Attention Needed
+              </p>
+              <p className="text-lg font-bold text-red-600">
+                {lowStockCount} Items Low on Stock
+              </p>
+              <p className="text-xs text-red-500">
+                Organic Bananas and {Math.max(0, lowStockCount - 1)} others are below threshold.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="hidden shrink-0 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 sm:block"
+          >
+            Review Stock
+          </button>
+        </div>
+      </div>
+
+      {/* Products table */}
+      <div className="rounded-xl border border-neutral-border bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-border px-5 py-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-bold text-text-dark">All Products</h2>
+            <span className="rounded-full bg-neutral px-2.5 py-0.5 text-xs font-semibold text-text-muted">
+              {totalProducts.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setPage(1)
+                }}
+                placeholder="Search by name, SKU..."
+                className="w-48 rounded-lg border border-neutral-border py-2 pl-9 pr-3 text-sm outline-none focus:border-primary sm:w-56"
+              />
+            </div>
+            <button
+              type="button"
+              className="rounded-lg border border-neutral-border p-2 text-text-muted hover:bg-neutral"
+            >
+              <HiOutlineFunnel className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-sm">
+            <thead>
+              <tr className="border-b border-neutral-border text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
+                <th className="px-5 py-3">
+                  <input type="checkbox" className="rounded" />
+                </th>
+                <th className="px-5 py-3">Product</th>
+                <th className="px-5 py-3">Category</th>
+                <th className="px-5 py-3">Price</th>
+                <th className="px-5 py-3">Stock</th>
+                <th className="px-5 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map((product) => (
+                <tr key={product.id} className="border-b border-neutral-border last:border-0">
+                  <td className="px-5 py-4">
+                    <input type="checkbox" className="rounded" />
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="font-medium text-text-dark">{product.name}</p>
+                        <p className="text-xs text-text-muted">SKU: {product.sku}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.categoryColor}`}
+                    >
+                      {product.category}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="font-medium text-text-dark">{product.priceLabel}</span>
+                    {product.originalPrice && (
+                      <span className="ml-1 text-xs text-text-muted line-through">
+                        ${product.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`font-medium ${product.stockColor}`}>
+                      {product.stock}{' '}
+                      <span className="text-xs">({product.stockStatus})</span>
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Link
+                      to={`/dashboard/shop-owner/inventory/edit/${product.id}`}
+                      className="text-sm font-semibold text-primary hover:text-primary-dark"
+                    >
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-border px-5 py-4">
+          <p className="text-sm text-text-muted">
+            Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of{' '}
+            {filtered.length}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+            >
+              <HiOutlineChevronLeft className="h-5 w-5" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPage(p)}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium ${
+                  page === p ? 'bg-primary text-white' : 'text-text-muted hover:bg-neutral'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+            >
+              <HiOutlineChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
