@@ -25,8 +25,16 @@ export const ROLE_CONFIG = [
   },
 ]
 
+export const SIGNUP_ROLE_CONFIG = ROLE_CONFIG.filter((role) => role.value !== ROLES.ADMIN)
+
 export function getDashboardPath(role) {
   return ROLE_CONFIG.find((r) => r.value === role)?.dashboardPath ?? '/'
+}
+
+/** Where to send a user right after login or sign-up */
+export function getPostAuthPath(role) {
+  if (role === ROLES.CUSTOMER) return '/'
+  return getDashboardPath(role)
 }
 
 export function getRoleLabel(role) {

@@ -29,6 +29,15 @@ export const quickReorderProducts = [
   },
 ]
 
+export const recentPayment = {
+  orderId: 'ORD-7742',
+  displayId: 'FR-77420',
+  amount: 52.47,
+  status: 'Paid',
+  date: 'June 15, 2026',
+  method: 'Card ending 4242',
+}
+
 export const rewardsData = {
   points: 1250,
   pointsToNext: 250,

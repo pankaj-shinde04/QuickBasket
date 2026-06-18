@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
-import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute'
+import ProtectedRoute, { GuestRoute, StorefrontRoute } from './components/ProtectedRoute'
 import CustomerLayout from './components/customer/CustomerLayout'
 import ShopOwnerLayout from './components/shop-owner/ShopOwnerLayout'
 import { ProductProvider } from './context/ProductContext'
@@ -28,6 +28,7 @@ import AdminVendors from './pages/admin/Vendors'
 import AdminUsers from './pages/admin/Users'
 import AdminSettings from './pages/admin/Settings'
 import ProductDetail from './pages/ProductDetail'
+import CategoryPage from './pages/CategoryPage'
 import Layout from './components/Layout'
 
 export default function App() {
@@ -103,9 +104,17 @@ export default function App() {
         <Route path="settings" element={<AdminSettings />} />
       </Route>
 
-      <Route path="/" element={<Layout />}>
+      <Route
+        path="/"
+        element={
+          <StorefrontRoute>
+            <Layout />
+          </StorefrontRoute>
+        }
+      >
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
+        <Route path="category/:categorySlug" element={<CategoryPage />} />
         <Route path="product/:productId" element={<ProductDetail />} />
       </Route>
     </Routes>

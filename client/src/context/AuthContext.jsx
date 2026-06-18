@@ -1,38 +1,22 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { getDashboardPath, getRoleLabel } from '../constants/roles'
-import { DUMMY_USERS } from '../data/dummyUsers'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { getDashboardPath, ROLES } from '../constants/roles'
+import * as authApi from '../services/authService'
 
 const AuthContext = createContext(null)
-const USERS_KEY = 'quickbasket_users'
+const TOKEN_KEY = 'quickbasket_token'
 const SESSION_KEY = 'quickbasket_session'
-const SEED_KEY = 'quickbasket_users_seeded'
 
-function loadUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]')
-  } catch {
-    return []
+function loadToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+function saveToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    localStorage.removeItem(TOKEN_KEY)
   }
 }
-
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
-function seedDummyUsers() {
-  const users = loadUsers()
-  const existingEmails = new Set(users.map((u) => u.email))
-  const toAdd = DUMMY_USERS.filter((u) => !existingEmails.has(u.email))
-
-  if (toAdd.length > 0) {
-    saveUsers([...users, ...toAdd])
-  }
-
-  localStorage.setItem(SEED_KEY, 'true')
-}
-
-// Ensure test accounts exist on every app load
-seedDummyUsers()
 
 function loadSession() {
   try {
@@ -52,76 +36,90 @@ function saveSession(user) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => loadSession())
+  const [loading, setLoading] = useState(true)
 
-  const signup = useCallback(({ firstName, lastName, email, password, role }) => {
-    const users = loadUsers()
-    const normalizedEmail = email.trim().toLowerCase()
+  useEffect(() => {
+    let cancelled = false
 
-    if (users.some((u) => u.email === normalizedEmail)) {
-      throw new Error('An account with this email already exists.')
+    async function restoreSession() {
+      const token = loadToken()
+
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const response = await authApi.fetchCurrentUser(token)
+        if (!cancelled) {
+          setUser(response.data.user)
+          saveSession(response.data.user)
+        }
+      } catch {
+        if (!cancelled) {
+          saveToken(null)
+          saveSession(null)
+          setUser(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
     }
 
-    if (password.length < 8) {
-      throw new Error('Password must be at least 8 characters.')
+    restoreSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const signup = useCallback(async ({ firstName, lastName, email, password, role }) => {
+    if (role === ROLES.ADMIN) {
+      throw new Error('Admin accounts cannot be created through registration.')
     }
 
-    const newUser = {
-      id: crypto.randomUUID(),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: normalizedEmail,
+    const response = await authApi.registerUser({
+      firstName,
+      lastName,
+      email,
       password,
       role,
-      createdAt: new Date().toISOString(),
-    }
+    })
 
-    users.push(newUser)
-    saveUsers(users)
+    const { user: newUser, token } = response.data
 
-    const session = {
-      id: newUser.id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      role: newUser.role,
-    }
+    saveToken(token)
+    saveSession(newUser)
+    setUser(newUser)
 
-    saveSession(session)
-    setUser(session)
-    return session
+    return newUser
   }, [])
 
-  const login = useCallback(({ email, password, role }) => {
-    const users = loadUsers()
-    const normalizedEmail = email.trim().toLowerCase()
-    const found = users.find(
-      (u) => u.email === normalizedEmail && u.password === password,
-    )
+  const login = useCallback(async ({ email, password }) => {
+    const response = await authApi.loginUser({ email, password })
+    const { user: loggedInUser, token } = response.data
 
-    if (!found) {
-      throw new Error('Invalid email or password.')
-    }
+    saveToken(token)
+    saveSession(loggedInUser)
+    setUser(loggedInUser)
 
-    if (found.role !== role) {
-      throw new Error(
-        `This account is registered as ${getRoleLabel(found.role)}. Please select the correct role.`,
-      )
-    }
-
-    const session = {
-      id: found.id,
-      firstName: found.firstName,
-      lastName: found.lastName,
-      email: found.email,
-      role: found.role,
-    }
-
-    saveSession(session)
-    setUser(session)
-    return session
+    return loggedInUser
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const token = loadToken()
+
+    if (token) {
+      try {
+        await authApi.logoutUser(token)
+      } catch {
+        // Clear local session even if the server call fails
+      }
+    }
+
+    saveToken(null)
     saveSession(null)
     setUser(null)
   }, [])
@@ -129,13 +127,14 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
+      loading,
       isAuthenticated: !!user,
       login,
       signup,
       logout,
       getRedirectPath: (role) => getDashboardPath(role ?? user?.role),
     }),
-    [user, login, signup, logout],
+    [user, loading, login, signup, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

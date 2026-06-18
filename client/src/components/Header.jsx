@@ -13,12 +13,15 @@ import Logo from './Logo'
 import CartTarget from './CartTarget'
 import { navLinks } from '../data/mockData'
 import { useAuth } from '../context/AuthContext'
-import { getDashboardPath } from '../constants/roles'
+import { getDashboardPath, ROLES } from '../constants/roles'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { isAuthenticated, user } = useAuth()
-  const accountPath = isAuthenticated ? getDashboardPath(user.role) : '/auth'
+  const accountPath =
+    isAuthenticated && user?.role === ROLES.CUSTOMER
+      ? getDashboardPath(user.role)
+      : '/auth'
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">

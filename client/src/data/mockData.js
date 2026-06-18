@@ -269,3 +269,29 @@ export const footerLinks = {
   Support: ['Help Center', 'Returns', 'Shipping', 'FAQ'],
   'Get in Touch': ['Contact Us', 'Live Chat', 'Feedback', 'Locations'],
 }
+
+export function categoryToSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, '-')
+}
+
+export function getCategoryBySlug(slug) {
+  return categories.find((cat) => categoryToSlug(cat.name) === slug) ?? null
+}
+
+export function getAllListedProducts() {
+  const seen = new Set()
+  const products = []
+
+  for (const item of [...featuredProducts, ...trendingProducts]) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id)
+      products.push(item)
+    }
+  }
+
+  return products
+}
+
+export function getProductsByCategory(categoryName) {
+  return getAllListedProducts().filter((product) => product.category === categoryName)
+}

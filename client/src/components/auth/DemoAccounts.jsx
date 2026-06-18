@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DUMMY_USERS, DUMMY_PASSWORD } from '../../data/dummyUsers'
-import { getDashboardPath, getRoleLabel } from '../../constants/roles'
+import { getPostAuthPath, getRoleLabel } from '../../constants/roles'
 import { useAuth } from '../../context/AuthContext'
 
-export default function DemoAccounts({ onSelectRole }) {
+export default function DemoAccounts() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(null)
@@ -13,15 +13,13 @@ export default function DemoAccounts({ onSelectRole }) {
   const quickLogin = async (account) => {
     setError('')
     setLoading(account.email)
-    onSelectRole(account.role)
 
     try {
-      const session = login({
+      const session = await login({
         email: account.email,
         password: account.password,
-        role: account.role,
       })
-      navigate(getDashboardPath(session.role), { replace: true })
+      navigate(getPostAuthPath(session.role), { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

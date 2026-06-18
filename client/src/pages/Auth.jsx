@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { HiOutlineShieldCheck, HiOutlineLifebuoy } from 'react-icons/hi2'
-import { ROLES } from '../constants/roles'
+import { ROLES, SIGNUP_ROLE_CONFIG } from '../constants/roles'
 import RoleSelector from '../components/auth/RoleSelector'
 import LoginForm from '../components/auth/LoginForm'
 import SignUpForm from '../components/auth/SignUpForm'
@@ -61,19 +61,25 @@ export default function Auth() {
             ))}
           </div>
 
-          {/* Role selector */}
-          <div className="mb-6">
-            <RoleSelector value={role} onChange={setRole} />
-          </div>
+          {/* Role selector — sign up only */}
+          {activeTab === TABS.signup && (
+            <div className="mb-6">
+              <RoleSelector
+                value={role}
+                onChange={setRole}
+                roles={SIGNUP_ROLE_CONFIG}
+              />
+            </div>
+          )}
 
           {/* Forms */}
           {activeTab === TABS.login ? (
-            <LoginForm role={role} />
+            <LoginForm />
           ) : (
             <SignUpForm role={role} />
           )}
 
-          <DemoAccounts onSelectRole={setRole} />
+          <DemoAccounts />
         </div>
 
         {/* Footer badges */}

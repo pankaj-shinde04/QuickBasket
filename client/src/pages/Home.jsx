@@ -2,7 +2,6 @@ import HeroSection from '../components/home/HeroSection'
 import CategoryRow from '../components/home/CategoryRow'
 import FeaturedProducts from '../components/home/FeaturedProducts'
 import PromoBanners from '../components/home/PromoBanners'
-import TopSellers from '../components/home/TopSellers'
 import BestSellers from '../components/home/BestSellers'
 import TrendingProducts from '../components/home/TrendingProducts'
 
@@ -13,7 +12,6 @@ export default function Home() {
       <CategoryRow />
       <FeaturedProducts />
       <PromoBanners />
-      <TopSellers />
       <BestSellers />
       <TrendingProducts />
     </div>

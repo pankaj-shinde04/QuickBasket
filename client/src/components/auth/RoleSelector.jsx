@@ -11,14 +11,18 @@ const iconMap = {
   shield: HiOutlineShieldCheck,
 }
 
-export default function RoleSelector({ value, onChange }) {
+export default function RoleSelector({ value, onChange, roles = ROLE_CONFIG }) {
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
         I am a...
       </p>
-      <div className="grid grid-cols-3 gap-2 rounded-xl bg-neutral p-1.5 sm:gap-3">
-        {ROLE_CONFIG.map((role) => {
+      <div
+        className={`grid gap-2 rounded-xl bg-neutral p-1.5 sm:gap-3 ${
+          roles.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+        }`}
+      >
+        {roles.map((role) => {
           const Icon = iconMap[role.icon]
           const isActive = value === role.value
 

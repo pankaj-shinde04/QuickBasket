@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
-import { HiOutlineHeart, HiOutlinePlus, HiOutlineSparkles } from 'react-icons/hi2'
+import { HiOutlineHeart, HiOutlinePlus, HiOutlineCreditCard } from 'react-icons/hi2'
 import { FaStar } from 'react-icons/fa'
 import AddToCartButton from '../components/AddToCartButton'
 import { useAuth } from '../context/AuthContext'
-import { quickReorderProducts, rewardsData } from '../data/customerData'
-import { getTrackingPath, ACTIVE_TRACKING_ORDER_ID } from '../data/customerOrders'
+import { quickReorderProducts, rewardsData, recentPayment } from '../data/customerData'
 
 export default function CustomerDashboard() {
   const { user } = useAuth()
@@ -13,32 +12,42 @@ export default function CustomerDashboard() {
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Top row: Welcome + Rewards */}
       <div className="mb-6 grid gap-4 sm:mb-8 sm:gap-5 lg:grid-cols-3">
-        {/* Welcome banner */}
+        {/* Payments summary */}
         <div className="relative overflow-hidden rounded-2xl bg-primary-light p-5 sm:p-6 lg:col-span-2 lg:p-8">
           <div className="relative z-10 max-w-lg">
-            <h1 className="text-xl font-bold text-primary sm:text-2xl lg:text-3xl">
+            <div className="mb-3 flex items-center gap-2">
+              <HiOutlineCreditCard className="h-6 w-6 text-primary" />
+              <h2 className="text-lg font-bold text-primary sm:text-xl">Recent Payment</h2>
+            </div>
+            <h1 className="text-xl font-bold text-text-dark sm:text-2xl">
               Welcome back, {user?.firstName}!
             </h1>
             <p className="mt-2 text-sm text-text-muted sm:mt-3 sm:text-base">
-              Your next grocery delivery is scheduled for tomorrow between{' '}
-              <strong className="text-text-dark">2 PM – 4 PM</strong>.
+              Your last order <strong className="text-text-dark">{recentPayment.displayId}</strong>{' '}
+              was paid on <strong className="text-text-dark">{recentPayment.date}</strong>.
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <span className="rounded-full bg-white px-3 py-1 font-semibold text-primary">
+                {recentPayment.status}
+              </span>
+              <span className="font-bold text-text-dark">${recentPayment.amount.toFixed(2)}</span>
+              <span className="text-text-muted">{recentPayment.method}</span>
+            </div>
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3">
               <Link
-                to={getTrackingPath(ACTIVE_TRACKING_ORDER_ID)}
+                to="/dashboard/customer/orders"
                 className="rounded-lg bg-primary px-5 py-2.5 text-center text-sm font-semibold text-white hover:bg-primary-dark"
               >
-                Track Order
+                View Payment History
               </Link>
               <Link
-                to="/dashboard/customer/orders"
+                to="/dashboard/customer/checkout"
                 className="rounded-lg border border-primary bg-white px-5 py-2.5 text-center text-sm font-semibold text-primary hover:bg-primary-light"
               >
-                View Details
+                Make a Payment
               </Link>
             </div>
           </div>
-          <HiOutlineSparkles className="absolute -bottom-4 -right-4 hidden h-32 w-32 text-primary/10 sm:block sm:h-40 sm:w-40" />
         </div>
 
         {/* Rewards card */}

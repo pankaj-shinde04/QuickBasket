@@ -1,13 +1,14 @@
-import { categories } from '../../data/mockData'
+import { Link } from 'react-router-dom'
+import { categories, categoryToSlug } from '../../data/mockData'
 
 export default function CategoryRow() {
   return (
     <section>
       <div className="grid grid-cols-4 gap-3 sm:gap-4 md:grid-cols-8 md:gap-5">
         {categories.map((cat) => (
-          <button
+          <Link
             key={cat.name}
-            type="button"
+            to={`/category/${categoryToSlug(cat.name)}`}
             className="group flex flex-col items-center gap-2 transition-transform hover:-translate-y-1"
           >
             <span
@@ -18,7 +19,7 @@ export default function CategoryRow() {
             <span className="text-center text-xs font-semibold text-text-dark sm:text-sm">
               {cat.name}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
     </section>

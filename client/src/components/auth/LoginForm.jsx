@@ -7,10 +7,9 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
-import { getDashboardPath } from '../../constants/roles'
-import SocialLogin from './SocialLogin'
+import { getPostAuthPath } from '../../constants/roles'
 
-export default function LoginForm({ role }) {
+export default function LoginForm() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
@@ -25,8 +24,8 @@ export default function LoginForm({ role }) {
     setLoading(true)
 
     try {
-      const session = login({ email, password, role })
-      navigate(getDashboardPath(session.role), { replace: true })
+      const session = await login({ email, password })
+      navigate(getPostAuthPath(session.role), { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -100,8 +99,6 @@ export default function LoginForm({ role }) {
       >
         {loading ? 'Signing in...' : 'Sign In'}
       </button>
-
-      <SocialLogin />
     </form>
   )
 }

@@ -7,8 +7,7 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
-import { getDashboardPath } from '../../constants/roles'
-import SocialLogin from './SocialLogin'
+import { getPostAuthPath } from '../../constants/roles'
 
 export default function SignUpForm({ role }) {
   const navigate = useNavigate()
@@ -27,8 +26,8 @@ export default function SignUpForm({ role }) {
     setLoading(true)
 
     try {
-      const session = signup({ firstName, lastName, email, password, role })
-      navigate(getDashboardPath(session.role), { replace: true })
+      const session = await signup({ firstName, lastName, email, password, role })
+      navigate(getPostAuthPath(session.role), { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -141,8 +140,6 @@ export default function SignUpForm({ role }) {
         </a>
         .
       </p>
-
-      <SocialLogin />
     </form>
   )
 }
