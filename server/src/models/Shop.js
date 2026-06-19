@@ -17,6 +17,12 @@ const shopSchema = new mongoose.Schema(
     },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
+    address: { type: String, trim: true, default: '' },
+    contactNumber: { type: String, trim: true, default: '' },
+    logo: { type: String, default: '' },
+    openingTime: { type: String, default: '' },
+    closingTime: { type: String, default: '' },
+    profileComplete: { type: Boolean, default: false },
     status: {
       type: String,
       enum: Object.values(SHOP_STATUS),

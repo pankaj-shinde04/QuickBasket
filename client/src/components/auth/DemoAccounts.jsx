@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DUMMY_USERS, DUMMY_PASSWORD } from '../../data/dummyUsers'
-import { getPostAuthPath, getRoleLabel } from '../../constants/roles'
+import { getPostAuthPath, getRoleLabel, ROLES } from '../../constants/roles'
 import { useAuth } from '../../context/AuthContext'
 
 export default function DemoAccounts() {
-  const { login } = useAuth()
+  const { login, getShopOwnerRedirect } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(null)
   const [error, setError] = useState('')
@@ -19,7 +19,11 @@ export default function DemoAccounts() {
         email: account.email,
         password: account.password,
       })
-      navigate(getPostAuthPath(session.role), { replace: true })
+      const path =
+        session.role === ROLES.SHOP_OWNER
+          ? await getShopOwnerRedirect(session)
+          : getPostAuthPath(session.role)
+      navigate(path, { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

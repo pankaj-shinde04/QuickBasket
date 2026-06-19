@@ -7,11 +7,11 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
-import { getPostAuthPath } from '../../constants/roles'
+import { getPostAuthPath, ROLES } from '../../constants/roles'
 
 export default function LoginForm() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, getShopOwnerRedirect } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -25,7 +25,11 @@ export default function LoginForm() {
 
     try {
       const session = await login({ email, password })
-      navigate(getPostAuthPath(session.role), { replace: true })
+      const path =
+        session.role === ROLES.SHOP_OWNER
+          ? await getShopOwnerRedirect(session)
+          : getPostAuthPath(session.role)
+      navigate(path, { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

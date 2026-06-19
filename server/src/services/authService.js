@@ -7,7 +7,6 @@ import ApiError from '../utils/ApiError.js'
 import { formatPublicUser } from '../utils/userFormatter.js'
 import { ROLES, SIGNUP_ROLES } from '../constants/roles.js'
 import { sendShopOwnerPendingEmail } from './emailService.js'
-import { buildDefaultShopName } from './vendorService.js'
 
 function createToken(userId) {
   return jwt.sign({ id: userId }, config.jwt.secret, {
@@ -29,6 +28,10 @@ function getLoginStatusMessage(status) {
   }
 
   return 'You are not allowed to log in at this time.'
+}
+
+function canAccessAsShopOwner(user) {
+  return user.role === ROLES.SHOP_OWNER && user.status === USER_STATUS.PENDING
 }
 
 export async function registerUser({ firstName, lastName, email, password, role }) {
@@ -56,20 +59,25 @@ export async function registerUser({ firstName, lastName, email, password, role 
   })
 
   if (isShopOwner) {
-    const shopName = buildDefaultShopName(firstName, lastName)
+    const shopName = 'Pending Registration'
 
     await Shop.create({
       owner: user._id,
       name: shopName,
       email: normalizedEmail,
       status: SHOP_STATUS.PENDING,
+      profileComplete: false,
     })
 
     void sendShopOwnerPendingEmail(user, shopName)
 
+    const token = createToken(user._id)
+
     return {
       user: formatPublicUser(user),
+      token,
       pending: true,
+      needsShopRegistration: true,
     }
   }
 
@@ -96,7 +104,15 @@ export async function loginUser({ email, password }) {
     throw new ApiError(401, 'Invalid email or password.')
   }
 
-  if (user.status !== USER_STATUS.ACTIVE) {
+  if (user.status === USER_STATUS.BANNED) {
+    throw new ApiError(403, getLoginStatusMessage(user.status))
+  }
+
+  if (user.status === USER_STATUS.REJECTED) {
+    throw new ApiError(403, getLoginStatusMessage(user.status))
+  }
+
+  if (user.status === USER_STATUS.PENDING && !canAccessAsShopOwner(user)) {
     throw new ApiError(403, getLoginStatusMessage(user.status))
   }
 
@@ -115,7 +131,11 @@ export async function getUserById(userId) {
     throw new ApiError(401, 'User not found.')
   }
 
-  if (user.status !== USER_STATUS.ACTIVE) {
+  if (user.status === USER_STATUS.BANNED || user.status === USER_STATUS.REJECTED) {
+    throw new ApiError(403, getLoginStatusMessage(user.status))
+  }
+
+  if (user.status === USER_STATUS.PENDING && !canAccessAsShopOwner(user)) {
     throw new ApiError(403, getLoginStatusMessage(user.status))
   }
 

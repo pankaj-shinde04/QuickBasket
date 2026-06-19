@@ -7,7 +7,7 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
-import { getPostAuthPath, ROLES } from '../../constants/roles'
+import { getPostAuthPath, ROLES, SHOP_REGISTER_PATH } from '../../constants/roles'
 
 export default function SignUpForm({ role }) {
   const navigate = useNavigate()
@@ -31,6 +31,11 @@ export default function SignUpForm({ role }) {
       const session = await signup({ firstName, lastName, email, password, role })
 
       if (session.pending) {
+        if (session.needsShopRegistration) {
+          navigate(SHOP_REGISTER_PATH, { replace: true })
+          return
+        }
+
         setSuccess(
           session.message ||
             'Your account is pending admin verification. Check your email for updates before logging in.',

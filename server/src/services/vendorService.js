@@ -18,9 +18,13 @@ function formatVendor(shop) {
     owner: owner ? `${owner.firstName} ${owner.lastName}` : 'Unknown',
     ownerId: owner?._id?.toString(),
     email: shop.email,
+    address: shop.address,
+    contactNumber: shop.contactNumber,
+    logo: shop.logo,
     registered: shop.createdAt,
     status: capitalizeStatus(shop.status),
     rawStatus: shop.status,
+    profileComplete: shop.profileComplete,
   }
 }
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getDashboardPath, ROLES } from '../constants/roles'
+import { getDashboardPath, getPostAuthPath, ROLES, SHOP_REGISTER_PATH } from '../constants/roles'
 import * as authApi from '../services/authService'
 
 const AuthContext = createContext(null)
@@ -89,9 +89,18 @@ export function AuthProvider({ children }) {
     })
 
     if (response.data.pending) {
+      const { user: pendingUser, token } = response.data
+
+      if (token) {
+        saveToken(token)
+        saveSession(pendingUser)
+        setUser(pendingUser)
+      }
+
       return {
-        ...response.data.user,
+        ...pendingUser,
         pending: true,
+        needsShopRegistration: response.data.needsShopRegistration,
         message: response.message,
       }
     }
@@ -114,6 +123,20 @@ export function AuthProvider({ children }) {
     setUser(loggedInUser)
 
     return loggedInUser
+  }, [])
+
+  const getShopOwnerRedirect = useCallback(async (user) => {
+    if (user?.role !== ROLES.SHOP_OWNER) {
+      return getPostAuthPath(user.role)
+    }
+
+    try {
+      const { fetchMyShop } = await import('../services/shopService')
+      const response = await fetchMyShop()
+      return getPostAuthPath(user.role, response.data.shop.profileComplete)
+    } catch {
+      return SHOP_REGISTER_PATH
+    }
   }, [])
 
   const logout = useCallback(async () => {
@@ -140,9 +163,10 @@ export function AuthProvider({ children }) {
       login,
       signup,
       logout,
+      getShopOwnerRedirect,
       getRedirectPath: (role) => getDashboardPath(role ?? user?.role),
     }),
-    [user, loading, login, signup, logout],
+    [user, loading, login, signup, logout, getShopOwnerRedirect],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

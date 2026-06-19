@@ -54,6 +54,11 @@ async function seed() {
         owner: createdUser._id,
         name: buildDefaultShopName(user.firstName, user.lastName),
         email: user.email,
+        address: '123 Market Street',
+        contactNumber: '+1 (800) 123-4567',
+        openingTime: '08:00',
+        closingTime: '20:00',
+        profileComplete: true,
         status: SHOP_STATUS.ACTIVE,
       })
       logger.info(`Created demo shop for: ${user.email}`)

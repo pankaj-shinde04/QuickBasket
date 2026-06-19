@@ -31,11 +31,13 @@ export function getDashboardPath(role) {
   return ROLE_CONFIG.find((r) => r.value === role)?.dashboardPath ?? '/'
 }
 
-/** Where to send a user right after login or sign-up */
-export function getPostAuthPath(role) {
+export function getPostAuthPath(role, shopProfileComplete = true) {
   if (role === ROLES.CUSTOMER) return '/'
+  if (role === ROLES.SHOP_OWNER && !shopProfileComplete) return '/register-shop'
   return getDashboardPath(role)
 }
+
+export const SHOP_REGISTER_PATH = '/register-shop'
 
 export function getRoleLabel(role) {
   return ROLE_CONFIG.find((r) => r.value === role)?.label ?? role

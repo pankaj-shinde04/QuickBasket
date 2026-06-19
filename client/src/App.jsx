@@ -21,6 +21,8 @@ import ShopOwnerEditProduct from './pages/shop-owner/EditProduct'
 import ShopOwnerOrders from './pages/shop-owner/Orders'
 import ShopOwnerOrderDetails from './pages/shop-owner/OrderDetails'
 import ShopOwnerPlaceholder from './pages/shop-owner/Placeholder'
+import RegisterShop from './pages/shop-owner/RegisterShop'
+import ShopOwnerRegistrationGuard from './components/shop-owner/ShopOwnerRegistrationGuard'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminAnalytics from './pages/admin/Analytics'
@@ -64,12 +66,23 @@ export default function App() {
       </Route>
 
       <Route
+        path="/register-shop"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.SHOP_OWNER]}>
+            <RegisterShop />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/dashboard/shop-owner"
         element={
           <ProtectedRoute allowedRoles={[ROLES.SHOP_OWNER]}>
-            <ProductProvider>
-              <ShopOwnerLayout />
-            </ProductProvider>
+            <ShopOwnerRegistrationGuard>
+              <ProductProvider>
+                <ShopOwnerLayout />
+              </ProductProvider>
+            </ShopOwnerRegistrationGuard>
           </ProtectedRoute>
         }
       >

@@ -5,6 +5,7 @@ import {
   HiOutlineShoppingCart,
   HiOutlineEllipsisVertical,
 } from 'react-icons/hi2'
+import { useAuth } from '../context/AuthContext'
 import { dashboardStats, recentOrders, inventoryAlerts } from '../data/shopOwnerData'
 
 const statIcons = {
@@ -20,8 +21,17 @@ const statusStyles = {
 }
 
 export default function ShopOwnerDashboard() {
+  const { user } = useAuth()
+
   return (
     <div className="p-5 sm:p-6 lg:p-8">
+      {user?.status === 'pending' && (
+        <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+          Your shop profile is complete. Your account is still <strong>pending admin approval</strong>.
+          You will receive an email once an admin reviews your application.
+        </div>
+      )}
+
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-text-dark sm:text-3xl">Dashboard Overview</h1>

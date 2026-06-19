@@ -7,7 +7,7 @@ export async function register(req, res) {
     return res.status(201).json({
       success: true,
       message:
-        'Application submitted successfully. Your account is pending admin verification. Check your email for updates.',
+        'Account created. Please complete your shop registration. We sent you an email about admin verification.',
       data: result,
     })
   }

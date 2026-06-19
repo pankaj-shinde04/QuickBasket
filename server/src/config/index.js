@@ -20,6 +20,11 @@ const config = {
     resendApiKey: process.env.RESEND_API_KEY || process.env.API_KEY_RESEND || '',
     from: process.env.EMAIL_FROM || 'QuickBasket <onboarding@resend.dev>',
   },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
 }
 
 export default config
