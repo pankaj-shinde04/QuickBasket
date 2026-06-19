@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
@@ -7,31 +7,87 @@ import {
   HiOutlineUserCircle,
   HiOutlineCloudArrowUp,
   HiOutlineBookmark,
+  HiOutlineXCircle,
 } from 'react-icons/hi2'
-import { useProducts } from '../../context/ProductContext'
 import { productCategories, unitTypes } from '../../data/shopOwnerData'
+import { createProduct } from '../../services/productService'
+import { getAuthToken } from '../../services/api'
+import { useProducts } from '../../context/ProductContext'
 
 export default function ShopOwnerAddProduct() {
   const navigate = useNavigate()
-  const { addProduct } = useProducts()
+  const { refresh } = useProducts()
+  const fileInputRef = useRef(null)
+
   const [form, setForm] = useState({
     name: '',
     description: '',
     category: '',
     price: '',
-    discount: '',
+    discountPrice: '',
     stock: '',
     unit: 'Piece',
     brand: '',
     taxable: true,
   })
 
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }))
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const handleDrop = (e) => {
     e.preventDefault()
-    addProduct(form)
-    navigate('/dashboard/shop-owner/inventory')
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    try {
+      const token = getAuthToken()
+      const formData = new FormData()
+
+      // Append all text fields
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          formData.append(key, value)
+        }
+      })
+
+      // Append image if selected
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      await createProduct(token, formData)
+      await refresh()
+      navigate('/dashboard/shop-owner/inventory')
+    } catch (err) {
+      setError(err.message || 'Failed to add product. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -81,13 +137,21 @@ export default function ShopOwnerAddProduct() {
           <button
             type="submit"
             form="add-product-form"
-            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
           >
             <HiOutlineBookmark className="h-5 w-5" />
-            Save Product
+            {loading ? 'Saving...' : 'Save Product'}
           </button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <form id="add-product-form" onSubmit={handleSubmit}>
         <div className="grid gap-6 lg:grid-cols-3">
@@ -123,15 +187,49 @@ export default function ShopOwnerAddProduct() {
               </div>
             </div>
 
+            {/* Product Image */}
             <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
               <h2 className="mb-4 font-bold text-text-dark">Product Image</h2>
-              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-border bg-neutral py-12 text-center">
-                <HiOutlineCloudArrowUp className="h-10 w-10 text-text-muted" />
-                <p className="mt-3 text-sm font-medium text-text-dark">
-                  Click to upload or drag and drop
-                </p>
-                <p className="mt-1 text-xs text-text-muted">SVG, PNG, JPG or WEBP (max. 5MB)</p>
-              </div>
+
+              {imagePreview ? (
+                <div className="relative flex flex-col items-center gap-4">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-48 w-48 rounded-xl object-cover shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="flex items-center gap-1.5 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50"
+                  >
+                    <HiOutlineXCircle className="h-4 w-4" />
+                    Remove Image
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-border bg-neutral py-12 text-center transition hover:border-primary hover:bg-primary/5"
+                >
+                  <HiOutlineCloudArrowUp className="h-10 w-10 text-text-muted" />
+                  <p className="mt-3 text-sm font-medium text-text-dark">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">SVG, PNG, JPG or WEBP (max. 5MB)</p>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
           </div>
 
@@ -139,23 +237,36 @@ export default function ShopOwnerAddProduct() {
           <div className="space-y-6">
             <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
               <h2 className="mb-4 font-bold text-text-dark">Organization</h2>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-text-muted">
-                  Product Category *
-                </label>
-                <select
-                  required
-                  value={form.category}
-                  onChange={(e) => update('category', e.target.value)}
-                  className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-                >
-                  <option value="">Select category</option>
-                  {productCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-text-muted">
+                    Product Category *
+                  </label>
+                  <select
+                    required
+                    value={form.category}
+                    onChange={(e) => update('category', e.target.value)}
+                    className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="">Select category</option>
+                    {productCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-text-muted">
+                    Brand / Origin
+                  </label>
+                  <input
+                    value={form.brand}
+                    onChange={(e) => update('brand', e.target.value)}
+                    placeholder="e.g. Sunny Farms"
+                    className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                  />
+                </div>
               </div>
             </div>
 
@@ -169,7 +280,7 @@ export default function ShopOwnerAddProduct() {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
-                        $
+                        ₹
                       </span>
                       <input
                         required
@@ -184,23 +295,25 @@ export default function ShopOwnerAddProduct() {
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-text-muted">
-                      Discount
+                      Discount Price
                     </label>
                     <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+                        ₹
+                      </span>
                       <input
                         type="number"
+                        step="0.01"
                         min="0"
-                        max="100"
-                        value={form.discount}
-                        onChange={(e) => update('discount', e.target.value)}
-                        className="w-full rounded-lg border border-neutral-border py-2.5 pl-3 pr-7 text-sm outline-none focus:border-primary"
+                        value={form.discountPrice}
+                        onChange={(e) => update('discountPrice', e.target.value)}
+                        placeholder="Optional"
+                        className="w-full rounded-lg border border-neutral-border py-2.5 pl-7 pr-3 text-sm outline-none focus:border-primary"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
-                        %
-                      </span>
                     </div>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-text-muted">
@@ -232,6 +345,16 @@ export default function ShopOwnerAddProduct() {
                     </select>
                   </div>
                 </div>
+
+                <label className="flex items-center gap-2 text-sm text-text-dark">
+                  <input
+                    type="checkbox"
+                    checked={form.taxable}
+                    onChange={(e) => update('taxable', e.target.checked)}
+                    className="rounded"
+                  />
+                  Taxable Item
+                </label>
               </div>
             </div>
           </div>

@@ -1,30 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { initialProducts } from '../data/shopOwnerData'
-
-const PRODUCTS_KEY = 'quickbasket_shop_products'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { getAuthToken } from '../services/api'
+import * as productApi from '../services/productService'
 
 const ProductContext = createContext(null)
 
-function loadProducts() {
-  try {
-    const stored = localStorage.getItem(PRODUCTS_KEY)
-    if (stored) return JSON.parse(stored)
-  } catch {
-    /* use defaults */
-  }
-  return initialProducts
-}
-
-function saveProducts(products) {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
-}
-
-function formatPriceLabel(price, unit) {
-  if (unit === 'per lb') return `$${price.toFixed(2)}/lb`
-  if (unit === 'per kg') return `$${price.toFixed(2)}/kg`
-  if (unit === 'Piece') return `$${price.toFixed(2)}/ea`
-  return `$${price.toFixed(2)}`
-}
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function getCategoryColor(category) {
   const map = {
@@ -40,102 +20,109 @@ function getCategoryColor(category) {
 
 function getStockInfo(stock) {
   if (stock === 0) return { stockStatus: 'Out of Stock', stockColor: 'text-red-500' }
-  if (stock <= 15) return { stockStatus: 'Low Stock', stockColor: 'text-red-500' }
+  if (stock <= 10) return { stockStatus: 'Low Stock', stockColor: 'text-red-500' }
   return { stockStatus: 'In Stock', stockColor: 'text-text-muted' }
 }
 
-export function ProductProvider({ children }) {
-  const [products, setProducts] = useState(loadProducts)
+function formatPriceLabel(price, unit) {
+  if (unit === 'per lb') return `₹${Number(price).toFixed(2)}/lb`
+  if (unit === 'per kg') return `₹${Number(price).toFixed(2)}/kg`
+  if (unit === 'Piece') return `₹${Number(price).toFixed(2)}/ea`
+  return `₹${Number(price).toFixed(2)}`
+}
 
-  const persist = useCallback((next) => {
-    setProducts(next)
-    saveProducts(next)
+// Map raw API product → shape expected by the UI
+function mapProduct(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    sku: p.sku || '',
+    category: p.category,
+    categoryColor: getCategoryColor(p.category),
+    price: p.price,
+    priceLabel: formatPriceLabel(p.price, p.unit),
+    originalPrice: p.discountPrice ? p.price : null,
+    discountPrice: p.discountPrice || null,
+    stock: p.stock,
+    ...getStockInfo(p.stock),
+    unit: p.unit,
+    brand: p.brand || '',
+    taxable: p.taxable,
+    description: p.description || '',
+    image: p.image || '',
+    isActive: p.isActive,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  }
+}
+
+// ── provider ──────────────────────────────────────────────────────────────────
+
+export function ProductProvider({ children }) {
+  const [products, setProducts] = useState([])
+  const [lowStockCount, setLowStockCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Fetch all products from the backend
+  const fetchProducts = useCallback(async (params = {}) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const token = getAuthToken()
+      const res = await productApi.getProducts(token, { limit: 100, ...params })
+      const mapped = (res.data.products || []).map(mapProduct)
+      setProducts(mapped)
+      setLowStockCount(res.data.lowStockCount || 0)
+    } catch (err) {
+      setError(err.message || 'Failed to load products.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  // Load on mount
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const getProduct = useCallback(
     (id) => products.find((p) => p.id === id),
     [products],
   )
 
-  const addProduct = useCallback(
-    (data) => {
-      const stock = Number(data.stock) || 0
-      const price = Number(data.price) || 0
-      const product = {
-        id: crypto.randomUUID(),
-        name: data.name,
-        sku: data.sku || `SKU-${Date.now()}`,
-        category: data.category,
-        categoryColor: getCategoryColor(data.category),
-        price,
-        priceLabel: formatPriceLabel(price, data.unit),
-        originalPrice: data.discount ? price * 1.2 : null,
-        discountPrice: data.discount ? price : null,
-        stock,
-        ...getStockInfo(stock),
-        unit: data.unit,
-        brand: data.brand || '',
-        taxable: data.taxable ?? true,
-        description: data.description || '',
-        image:
-          data.image ||
-          'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&h=100&fit=crop',
-      }
-      persist([product, ...products])
-      return product
-    },
-    [products, persist],
-  )
+  // Refresh list after any mutation
+  const addProduct = useCallback(async () => {
+    await fetchProducts()
+  }, [fetchProducts])
 
-  const updateProduct = useCallback(
-    (id, data) => {
-      const stock = Number(data.stock) || 0
-      const price = Number(data.price) || 0
-      const next = products.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              name: data.name,
-              sku: data.sku,
-              category: data.category,
-              categoryColor: getCategoryColor(data.category),
-              price,
-              priceLabel: formatPriceLabel(price, data.unit),
-              originalPrice: data.discountPrice ? price : p.originalPrice,
-              discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
-              stock,
-              ...getStockInfo(stock),
-              unit: data.unit,
-              brand: data.brand || '',
-              taxable: data.taxable ?? true,
-              description: data.description || '',
-              image: data.image || p.image,
-            }
-          : p,
-      )
-      persist(next)
-    },
-    [products, persist],
-  )
+  const updateProduct = useCallback(async () => {
+    await fetchProducts()
+  }, [fetchProducts])
 
   const deleteProduct = useCallback(
-    (id) => {
-      persist(products.filter((p) => p.id !== id))
+    async (id) => {
+      const token = getAuthToken()
+      await productApi.deleteProduct(token, id)
+      await fetchProducts()
     },
-    [products, persist],
+    [fetchProducts],
   )
 
   const value = useMemo(
     () => ({
       products,
       totalProducts: products.length,
-      lowStockCount: products.filter((p) => p.stock <= 15).length,
+      lowStockCount,
+      loading,
+      error,
       getProduct,
       addProduct,
       updateProduct,
       deleteProduct,
+      refresh: fetchProducts,
     }),
-    [products, getProduct, addProduct, updateProduct, deleteProduct],
+    [products, lowStockCount, loading, error, getProduct, addProduct, updateProduct, deleteProduct, fetchProducts],
   )
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>

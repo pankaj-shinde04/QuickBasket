@@ -39,3 +39,27 @@ export async function apiRequest(path, options = {}) {
 
   return data
 }
+
+// For multipart/form-data (file uploads) — do NOT set Content-Type manually
+// so the browser can set the correct boundary automatically
+export async function apiFormRequest(path, formData, method = 'POST', token = null) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new ApiError(
+      data.message || 'Something went wrong.',
+      response.status,
+      data.errors ?? null,
+    )
+  }
+
+  return data
+}

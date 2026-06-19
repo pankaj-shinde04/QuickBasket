@@ -19,6 +19,7 @@ const upload = multer({
 })
 
 export const uploadShopLogo = upload.single('logo')
+export const uploadProductImage = upload.single('image')
 
 export function handleMulterError(err, _req, _res, next) {
   if (err instanceof multer.MulterError) {

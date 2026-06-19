@@ -11,21 +11,26 @@ import {
   HiOutlineSquares2X2,
   HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp,
+  HiOutlinePlus,
+  HiOutlineArrowPath,
 } from 'react-icons/hi2'
 import { useProducts } from '../../context/ProductContext'
 
+const PLACEHOLDER =
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&h=100&fit=crop'
+
 export default function ShopOwnerInventory() {
-  const { products, totalProducts, lowStockCount } = useProducts()
+  const { products, totalProducts, lowStockCount, loading, error, refresh } = useProducts()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const perPage = 3
+  const perPage = 10
 
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.sku.toLowerCase().includes(search.toLowerCase()),
   )
-  const totalPages = Math.ceil(filtered.length / perPage)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
 
   return (
@@ -62,12 +67,10 @@ export default function ShopOwnerInventory() {
             <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Total Products
             </p>
-            <p className="text-2xl font-bold text-text-dark">
-              {totalProducts.toLocaleString()}
-            </p>
+            <p className="text-2xl font-bold text-text-dark">{totalProducts.toLocaleString()}</p>
             <p className="flex items-center gap-1 text-xs font-medium text-tertiary">
               <HiOutlineArrowTrendingUp className="h-3.5 w-3.5" />
-              +24 this month
+              Live from database
             </p>
           </div>
         </div>
@@ -81,12 +84,8 @@ export default function ShopOwnerInventory() {
               <p className="text-xs font-semibold uppercase tracking-wider text-red-600">
                 Attention Needed
               </p>
-              <p className="text-lg font-bold text-red-600">
-                {lowStockCount} Items Low on Stock
-              </p>
-              <p className="text-xs text-red-500">
-                Organic Bananas and {Math.max(0, lowStockCount - 1)} others are below threshold.
-              </p>
+              <p className="text-lg font-bold text-red-600">{lowStockCount} Items Low on Stock</p>
+              <p className="text-xs text-red-500">Items at or below minimum threshold.</p>
             </div>
           </div>
           <button
@@ -108,6 +107,18 @@ export default function ShopOwnerInventory() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Refresh */}
+            <button
+              type="button"
+              onClick={() => refresh()}
+              disabled={loading}
+              title="Refresh"
+              className="rounded-lg border border-neutral-border p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+            >
+              <HiOutlineArrowPath className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* Search */}
             <div className="relative">
               <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <input
@@ -121,120 +132,173 @@ export default function ShopOwnerInventory() {
                 className="w-48 rounded-lg border border-neutral-border py-2 pl-9 pr-3 text-sm outline-none focus:border-primary sm:w-56"
               />
             </div>
+
             <button
               type="button"
               className="rounded-lg border border-neutral-border p-2 text-text-muted hover:bg-neutral"
             >
               <HiOutlineFunnel className="h-5 w-5" />
             </button>
+
+            {/* Add product button */}
+            <Link
+              to="/dashboard/shop-owner/inventory/add"
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
+              <HiOutlinePlus className="h-4 w-4" />
+              Add Product
+            </Link>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-sm">
-            <thead>
-              <tr className="border-b border-neutral-border text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
-                <th className="px-5 py-3">
-                  <input type="checkbox" className="rounded" />
-                </th>
-                <th className="px-5 py-3">Product</th>
-                <th className="px-5 py-3">Category</th>
-                <th className="px-5 py-3">Price</th>
-                <th className="px-5 py-3">Stock</th>
-                <th className="px-5 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((product) => (
-                <tr key={product.id} className="border-b border-neutral-border last:border-0">
-                  <td className="px-5 py-4">
-                    <input type="checkbox" className="rounded" />
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-10 w-10 rounded-lg object-cover"
-                      />
-                      <div>
-                        <p className="font-medium text-text-dark">{product.name}</p>
-                        <p className="text-xs text-text-muted">SKU: {product.sku}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.categoryColor}`}
-                    >
-                      {product.category}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="font-medium text-text-dark">{product.priceLabel}</span>
-                    {product.originalPrice && (
-                      <span className="ml-1 text-xs text-text-muted line-through">
-                        ${product.originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`font-medium ${product.stockColor}`}>
-                      {product.stock}{' '}
-                      <span className="text-xs">({product.stockStatus})</span>
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Link
-                      to={`/dashboard/shop-owner/inventory/edit/${product.id}`}
-                      className="text-sm font-semibold text-primary hover:text-primary-dark"
-                    >
-                      Edit
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-16 text-sm text-text-muted">
+            <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
+            Loading products...
+          </div>
+        )}
 
-        {/* Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-border px-5 py-4">
-          <p className="text-sm text-text-muted">
-            Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of{' '}
-            {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
+        {/* Error state */}
+        {!loading && error && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-red-500">{error}</p>
             <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+              onClick={() => refresh()}
+              className="mt-3 text-sm font-semibold text-primary hover:underline"
             >
-              <HiOutlineChevronLeft className="h-5 w-5" />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPage(p)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium ${
-                  page === p ? 'bg-primary text-white' : 'text-text-muted hover:bg-neutral'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
-            >
-              <HiOutlineChevronRight className="h-5 w-5" />
+              Try again
             </button>
           </div>
-        </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && !error && products.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HiOutlineSquares2X2 className="mb-3 h-12 w-12 text-neutral-border" />
+            <p className="font-medium text-text-dark">No products yet</p>
+            <p className="mt-1 text-sm text-text-muted">
+              Start by adding your first product to the inventory.
+            </p>
+            <Link
+              to="/dashboard/shop-owner/inventory/add"
+              className="mt-4 flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
+              <HiOutlinePlus className="h-4 w-4" />
+              Add First Product
+            </Link>
+          </div>
+        )}
+
+        {/* Table */}
+        {!loading && !error && products.length > 0 && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-border text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
+                    <th className="px-5 py-3">
+                      <input type="checkbox" className="rounded" />
+                    </th>
+                    <th className="px-5 py-3">Product</th>
+                    <th className="px-5 py-3">Category</th>
+                    <th className="px-5 py-3">Price</th>
+                    <th className="px-5 py-3">Stock</th>
+                    <th className="px-5 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((product) => (
+                    <tr key={product.id} className="border-b border-neutral-border last:border-0 hover:bg-neutral/40">
+                      <td className="px-5 py-4">
+                        <input type="checkbox" className="rounded" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={product.image || PLACEHOLDER}
+                            alt={product.name}
+                            className="h-10 w-10 rounded-lg object-cover"
+                            onError={(e) => { e.target.src = PLACEHOLDER }}
+                          />
+                          <div>
+                            <p className="font-medium text-text-dark">{product.name}</p>
+                            <p className="text-xs text-text-muted">SKU: {product.sku}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.categoryColor}`}>
+                          {product.category}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-medium text-text-dark">{product.priceLabel}</span>
+                        {product.originalPrice && (
+                          <span className="ml-1 text-xs text-text-muted line-through">
+                            ₹{product.originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`font-medium ${product.stockColor}`}>
+                          {product.stock}{' '}
+                          <span className="text-xs">({product.stockStatus})</span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <Link
+                          to={`/dashboard/shop-owner/inventory/edit/${product.id}`}
+                          className="text-sm font-semibold text-primary hover:text-primary-dark"
+                        >
+                          Edit
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-border px-5 py-4">
+              <p className="text-sm text-text-muted">
+                Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1}–
+                {Math.min(page * perPage, filtered.length)} of {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+                >
+                  <HiOutlineChevronLeft className="h-5 w-5" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium ${
+                      page === p ? 'bg-primary text-white' : 'text-text-muted hover:bg-neutral'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
+                >
+                  <HiOutlineChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
