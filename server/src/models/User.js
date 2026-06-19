@@ -1,6 +1,11 @@
 import mongoose from 'mongoose'
 import { ROLES } from '../constants/roles.js'
 
+export const USER_STATUS = {
+  ACTIVE: 'active',
+  BANNED: 'banned',
+}
+
 const userSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true, trim: true },
@@ -17,6 +22,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(ROLES),
       required: true,
+    },
+    status: {
+      type: String,
+      enum: Object.values(USER_STATUS),
+      default: USER_STATUS.ACTIVE,
     },
   },
   {

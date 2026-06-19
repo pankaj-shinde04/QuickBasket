@@ -1,25 +1,15 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
+import User, { USER_STATUS } from '../models/User.js'
 import config from '../config/index.js'
 import ApiError from '../utils/ApiError.js'
+import { formatPublicUser } from '../utils/userFormatter.js'
 import { ROLES, SIGNUP_ROLES } from '../constants/roles.js'
 
 function createToken(userId) {
   return jwt.sign({ id: userId }, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
   })
-}
-
-function toPublicUser(user) {
-  return {
-    id: user.id ?? user._id.toString(),
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    role: user.role,
-    createdAt: user.createdAt,
-  }
 }
 
 export async function registerUser({ firstName, lastName, email, password, role }) {
@@ -47,7 +37,7 @@ export async function registerUser({ firstName, lastName, email, password, role 
   const token = createToken(user._id)
 
   return {
-    user: toPublicUser(user),
+    user: formatPublicUser(user),
     token,
   }
 }
@@ -60,6 +50,10 @@ export async function loginUser({ email, password }) {
     throw new ApiError(401, 'Invalid email or password.')
   }
 
+  if (user.status === USER_STATUS.BANNED) {
+    throw new ApiError(403, 'This account has been banned. Contact support.')
+  }
+
   const isPasswordValid = await bcrypt.compare(password, user.password)
 
   if (!isPasswordValid) {
@@ -69,7 +63,7 @@ export async function loginUser({ email, password }) {
   const token = createToken(user._id)
 
   return {
-    user: toPublicUser(user),
+    user: formatPublicUser(user),
     token,
   }
 }
@@ -81,5 +75,9 @@ export async function getUserById(userId) {
     throw new ApiError(401, 'User not found.')
   }
 
-  return toPublicUser(user)
+  if (user.status === USER_STATUS.BANNED) {
+    throw new ApiError(403, 'This account has been banned. Contact support.')
+  }
+
+  return formatPublicUser(user)
 }

@@ -1,4 +1,9 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const TOKEN_KEY = 'quickbasket_token'
+
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
 
 export class ApiError extends Error {
   constructor(message, status, errors = null) {

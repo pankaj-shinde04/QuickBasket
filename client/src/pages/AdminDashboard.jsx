@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   HiOutlineBanknotes,
@@ -6,12 +7,9 @@ import {
   HiOutlineEllipsisVertical,
 } from 'react-icons/hi2'
 import AdminTopBar from '../components/admin/AdminTopBar'
-import {
-  platformStats,
-  recentUsers,
-  systemEvents,
-  userStatusStyles,
-} from '../data/adminData'
+import { platformStats, systemEvents, userStatusStyles } from '../data/adminData'
+import * as adminApi from '../services/adminService'
+import { formatJoinDate, formatStatusLabel, getAvatarColor } from '../utils/adminUser'
 
 const statIcons = {
   revenue: HiOutlineBanknotes,
@@ -20,6 +18,26 @@ const statIcons = {
 }
 
 export default function AdminDashboard() {
+  const [recentUsers, setRecentUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(true)
+
+  const loadRecentUsers = useCallback(async () => {
+    setLoadingUsers(true)
+
+    try {
+      const response = await adminApi.fetchUsers({ limit: 4, page: 1 })
+      setRecentUsers(response.data.users)
+    } catch {
+      setRecentUsers([])
+    } finally {
+      setLoadingUsers(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadRecentUsers()
+  }, [loadRecentUsers])
+
   return (
     <div>
       <AdminTopBar
@@ -29,7 +47,6 @@ export default function AdminDashboard() {
       />
 
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {platformStats.map((stat) => {
             const Icon = statIcons[stat.id]
@@ -65,9 +82,7 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* Main grid */}
         <div className="mt-6 grid gap-6 xl:grid-cols-3">
-          {/* Recent Users */}
           <div className="overflow-hidden rounded-xl border border-neutral-border bg-white shadow-sm xl:col-span-2">
             <div className="flex items-center justify-between border-b border-neutral-border px-4 py-4 sm:px-5">
               <h2 className="font-bold text-text-dark">Recent Users</h2>
@@ -83,52 +98,74 @@ export default function AdminDashboard() {
                 <thead>
                   <tr className="border-b border-neutral-border text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
                     <th className="px-4 py-3 sm:px-5">User</th>
+                    <th className="px-4 py-3 sm:px-5">Role</th>
                     <th className="px-4 py-3 sm:px-5">Status</th>
-                    <th className="px-4 py-3 sm:px-5">Last Active</th>
+                    <th className="px-4 py-3 sm:px-5">Joined</th>
                     <th className="px-4 py-3 sm:px-5">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-neutral-border last:border-0">
-                      <td className="px-4 py-3.5 sm:px-5">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${user.avatarColor}`}
-                          >
-                            {user.initials}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-text-dark">{user.name}</p>
-                            <p className="truncate text-xs text-text-muted">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 sm:px-5">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${userStatusStyles[user.status]}`}
-                        >
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-text-muted sm:px-5">{user.lastActive}</td>
-                      <td className="px-4 py-3.5 sm:px-5">
-                        <button
-                          type="button"
-                          className="rounded p-1 text-text-muted hover:bg-neutral"
-                          aria-label="User actions"
-                        >
-                          <HiOutlineEllipsisVertical className="h-5 w-5" />
-                        </button>
+                  {loadingUsers ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-text-muted sm:px-5">
+                        Loading users...
                       </td>
                     </tr>
-                  ))}
+                  ) : recentUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-text-muted sm:px-5">
+                        No users found.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentUsers.map((user, index) => {
+                      const statusLabel = formatStatusLabel(user.status)
+                      return (
+                        <tr key={user.id} className="border-b border-neutral-border last:border-0">
+                          <td className="px-4 py-3.5 sm:px-5">
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${getAvatarColor(index)}`}
+                              >
+                                {user.initials}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-text-dark">{user.name}</p>
+                                <p className="truncate text-xs text-text-muted">{user.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 capitalize text-text-muted sm:px-5">
+                            {user.role.replace('_', ' ')}
+                          </td>
+                          <td className="px-4 py-3.5 sm:px-5">
+                            <span
+                              className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${userStatusStyles[statusLabel] ?? userStatusStyles.ACTIVE}`}
+                            >
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-text-muted sm:px-5">
+                            {formatJoinDate(user.joinDate)}
+                          </td>
+                          <td className="px-4 py-3.5 sm:px-5">
+                            <button
+                              type="button"
+                              className="rounded p-1 text-text-muted hover:bg-neutral"
+                              aria-label="User actions"
+                            >
+                              <HiOutlineEllipsisVertical className="h-5 w-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* System Events */}
           <div className="rounded-xl border border-neutral-border bg-white shadow-sm">
             <div className="border-b border-neutral-border px-4 py-4 sm:px-5">
               <h2 className="font-bold text-text-dark">System Events</h2>
