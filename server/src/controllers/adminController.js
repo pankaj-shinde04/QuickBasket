@@ -1,4 +1,5 @@
 import * as adminService from '../services/adminService.js'
+import * as vendorService from '../services/vendorService.js'
 
 export async function createAdmin(req, res) {
   const admin = await adminService.createAdmin(req.body)
@@ -44,5 +45,43 @@ export async function updateUserStatus(req, res) {
     success: true,
     message: 'User status updated successfully.',
     data: { user },
+  })
+}
+
+export async function listVendors(req, res) {
+  const result = await vendorService.listVendors(req.query)
+
+  res.json({
+    success: true,
+    data: result,
+  })
+}
+
+export async function getVendorStats(_req, res) {
+  const stats = await vendorService.getVendorStats()
+
+  res.json({
+    success: true,
+    data: { stats },
+  })
+}
+
+export async function approveVendor(req, res) {
+  const vendor = await vendorService.approveVendor(req.params.id)
+
+  res.json({
+    success: true,
+    message: 'Vendor approved successfully.',
+    data: { vendor },
+  })
+}
+
+export async function rejectVendor(req, res) {
+  const vendor = await vendorService.rejectVendor(req.params.id)
+
+  res.json({
+    success: true,
+    message: 'Vendor rejected successfully.',
+    data: { vendor },
   })
 }

@@ -1,52 +1,127 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineAdjustmentsHorizontal,
   HiOutlineChevronDown,
-  HiOutlineNoSymbol,
-  HiOutlineTrash,
   HiOutlineCheck,
   HiOutlineXMark,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
 } from 'react-icons/hi2'
 import AdminTopBar from '../../components/admin/AdminTopBar'
-import { vendors, vendorSummary, vendorStatusStyles, vendorFilters } from '../../data/adminData'
+import { vendorStatusStyles, vendorFilters } from '../../data/adminData'
+import * as adminApi from '../../services/adminService'
+import { formatJoinDate } from '../../utils/adminUser'
+
+const STATUS_FILTER_MAP = {
+  'All Statuses': '',
+  Active: 'active',
+  Pending: 'pending',
+  Suspended: 'suspended',
+  Rejected: 'rejected',
+}
 
 export default function AdminVendors() {
   const [statusFilter, setStatusFilter] = useState('All Statuses')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [vendors, setVendors] = useState([])
+  const [stats, setStats] = useState(null)
+  const [pagination, setPagination] = useState({ totalPages: 1, total: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [actionLoading, setActionLoading] = useState(null)
 
-  const filtered = vendors.filter((v) => {
-    const matchesStatus = statusFilter === 'All Statuses' || v.status === statusFilter
-    const q = search.toLowerCase()
-    const matchesSearch =
-      !q ||
-      v.name.toLowerCase().includes(q) ||
-      v.owner.toLowerCase().includes(q) ||
-      v.email.toLowerCase().includes(q)
-    return matchesStatus && matchesSearch
-  })
+  const loadVendors = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await adminApi.fetchVendors({
+        page,
+        limit: 10,
+        status: STATUS_FILTER_MAP[statusFilter],
+        search: search.trim() || undefined,
+      })
+      setVendors(response.data.vendors)
+      setPagination(response.data.pagination)
+    } catch (err) {
+      setError(err.message)
+      setVendors([])
+    } finally {
+      setLoading(false)
+    }
+  }, [page, search, statusFilter])
+
+  const loadStats = useCallback(async () => {
+    try {
+      const response = await adminApi.fetchVendorStats()
+      setStats(response.data.stats)
+    } catch {
+      setStats(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadVendors()
+  }, [loadVendors])
+
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
+
+  const handleApprove = async (vendorId) => {
+    setActionLoading(vendorId)
+    setError('')
+
+    try {
+      await adminApi.approveVendor(vendorId)
+      await Promise.all([loadVendors(), loadStats()])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReject = async (vendorId) => {
+    setActionLoading(vendorId)
+    setError('')
+
+    try {
+      await adminApi.rejectVendor(vendorId)
+      await Promise.all([loadVendors(), loadStats()])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   return (
     <div>
       <AdminTopBar
         title="Vendor Management"
         subtitle="Review and manage all registered merchant shops on the QuickBasket platform."
-        badge={`${vendorSummary.pendingRequests} Pending Requests`}
+        badge={stats ? `${stats.pendingRequests} Pending Requests` : undefined}
         searchPlaceholder="Search vendors..."
       />
 
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Filters */}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        )}
+
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative min-w-0 flex-1 sm:min-w-[240px]">
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               placeholder="Search by shop name, owner, or email..."
               className="w-full rounded-lg border border-neutral-border py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"
             />
@@ -54,7 +129,10 @@ export default function AdminVendors() {
           <div className="relative">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setPage(1)
+              }}
               className="w-full appearance-none rounded-lg border border-neutral-border bg-white py-2.5 pl-4 pr-10 text-sm outline-none focus:border-primary sm:w-auto"
             >
               {vendorFilters.map((f) => (
@@ -72,7 +150,6 @@ export default function AdminVendors() {
           </button>
         </div>
 
-        {/* Table */}
         <div className="overflow-hidden rounded-xl border border-neutral-border bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
@@ -86,105 +163,96 @@ export default function AdminVendors() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((vendor) => (
-                  <tr key={vendor.id} className="border-b border-neutral-border last:border-0">
-                    <td className="px-4 py-4 sm:px-5">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={vendor.logo}
-                          alt=""
-                          className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-text-dark">{vendor.name}</p>
-                          <p className="text-xs text-text-muted">ID: {vendor.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 sm:px-5">
-                      <p className="font-medium text-text-dark">{vendor.owner}</p>
-                      <p className="text-xs text-text-muted">{vendor.email}</p>
-                    </td>
-                    <td className="px-4 py-4 text-text-muted sm:px-5">{vendor.registered}</td>
-                    <td className="px-4 py-4 sm:px-5">
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${vendorStatusStyles[vendor.status]}`}
-                      >
-                        {vendor.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 sm:px-5">
-                      <div className="flex items-center gap-2">
-                        {vendor.status === 'Pending' ? (
-                          <>
-                            <button
-                              type="button"
-                              className="flex items-center gap-1 rounded-lg bg-tertiary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                            >
-                              <HiOutlineCheck className="h-4 w-4" />
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
-                              aria-label="Reject"
-                            >
-                              <HiOutlineXMark className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="rounded-lg p-1.5 text-text-muted hover:bg-neutral"
-                              aria-label="Suspend"
-                            >
-                              <HiOutlineNoSymbol className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
-                              aria-label="Delete"
-                            >
-                              <HiOutlineTrash className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-text-muted sm:px-5">
+                      Loading vendors...
                     </td>
                   </tr>
-                ))}
+                ) : vendors.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-text-muted sm:px-5">
+                      No vendors found.
+                    </td>
+                  </tr>
+                ) : (
+                  vendors.map((vendor) => (
+                    <tr key={vendor.id} className="border-b border-neutral-border last:border-0">
+                      <td className="px-4 py-4 sm:px-5">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-text-dark">{vendor.name}</p>
+                          <p className="text-xs text-text-muted">ID: {vendor.shopId}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 sm:px-5">
+                        <p className="font-medium text-text-dark">{vendor.owner}</p>
+                        <p className="text-xs text-text-muted">{vendor.email}</p>
+                      </td>
+                      <td className="px-4 py-4 text-text-muted sm:px-5">
+                        {formatJoinDate(vendor.registered)}
+                      </td>
+                      <td className="px-4 py-4 sm:px-5">
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${vendorStatusStyles[vendor.status] ?? vendorStatusStyles.Pending}`}
+                        >
+                          {vendor.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 sm:px-5">
+                        <div className="flex items-center gap-2">
+                          {vendor.status === 'Pending' ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleApprove(vendor.id)}
+                                className="flex items-center gap-1 rounded-lg bg-tertiary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                              >
+                                <HiOutlineCheck className="h-4 w-4" />
+                                {actionLoading === vendor.id ? 'Saving...' : 'Approve'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleReject(vendor.id)}
+                                className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-60"
+                                aria-label="Reject"
+                              >
+                                <HiOutlineXMark className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-text-muted">No actions</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
           <div className="flex flex-col gap-3 border-t border-neutral-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="text-sm text-text-muted">Showing 1 to {filtered.length} of 128 results</p>
+            <p className="text-sm text-text-muted">
+              Showing {vendors.length} of {pagination.total ?? 0} results
+            </p>
             <div className="flex items-center justify-center gap-1">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || loading}
                 className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
               >
                 <HiOutlineChevronLeft className="h-5 w-5" />
               </button>
-              {[1, 2, 3].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold ${
-                    page === p ? 'bg-primary text-white' : 'text-text-muted hover:bg-neutral'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              <span className="px-3 text-sm text-text-muted">
+                Page {pagination.page ?? page} of {pagination.totalPages ?? 1}
+              </span>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(3, p + 1))}
-                disabled={page === 3}
+                onClick={() => setPage((p) => Math.min(pagination.totalPages ?? 1, p + 1))}
+                disabled={page >= (pagination.totalPages ?? 1) || loading}
                 className="rounded-lg p-2 text-text-muted hover:bg-neutral disabled:opacity-40"
               >
                 <HiOutlineChevronRight className="h-5 w-5" />
@@ -193,20 +261,12 @@ export default function AdminVendors() {
           </div>
         </div>
 
-        {/* Summary cards */}
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-xl bg-primary p-5 text-white sm:p-6 md:col-span-1">
             <h3 className="font-bold">Registration Trends</h3>
-            <p className="mt-2 text-sm text-white/80">{vendorSummary.registrationTrend}</p>
-            <div className="mt-4 flex h-16 items-end gap-2">
-              {[40, 55, 48, 70, 62, 80].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t bg-white/30"
-                  style={{ height: `${h}%` }}
-                />
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-white/80">
+              {stats?.registrationTrend ?? 'Shop applications are reviewed by admin before activation.'}
+            </p>
           </div>
           <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
@@ -215,8 +275,9 @@ export default function AdminVendors() {
               </span>
               <div>
                 <p className="text-sm text-text-muted">Total Active Shops</p>
-                <p className="text-2xl font-bold text-text-dark">{vendorSummary.totalActive.toLocaleString()}</p>
-                <p className="text-xs font-medium text-tertiary">+{vendorSummary.activeToday} today</p>
+                <p className="text-2xl font-bold text-text-dark">
+                  {stats?.totalActive?.toLocaleString() ?? '—'}
+                </p>
               </div>
             </div>
           </div>
@@ -226,11 +287,13 @@ export default function AdminVendors() {
                 <HiOutlineXMark className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-sm text-text-muted">Suspended Accounts</p>
-                <p className="text-2xl font-bold text-text-dark">{vendorSummary.suspended}</p>
-                <button type="button" className="text-xs font-semibold text-primary hover:text-primary-dark">
-                  Pending review
-                </button>
+                <p className="text-sm text-text-muted">Pending / Rejected</p>
+                <p className="text-2xl font-bold text-text-dark">
+                  {(stats?.pendingRequests ?? 0) + (stats?.rejected ?? 0)}
+                </p>
+                <p className="text-xs text-text-muted">
+                  {stats?.pendingRequests ?? 0} pending · {stats?.rejected ?? 0} rejected
+                </p>
               </div>
             </div>
           </div>

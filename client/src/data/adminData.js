@@ -259,8 +259,9 @@ export const vendorStatusStyles = {
   Active: 'bg-tertiary-light text-tertiary',
   Pending: 'bg-yellow-100 text-yellow-800',
   Suspended: 'bg-red-100 text-red-600',
+  Rejected: 'bg-red-100 text-red-600',
 }
 
 export const userFilters = ['All Users', 'Active', 'Banned']
 
-export const vendorFilters = ['All Statuses', 'Active', 'Pending', 'Suspended']
+export const vendorFilters = ['All Statuses', 'Active', 'Pending', 'Suspended', 'Rejected']

@@ -7,7 +7,7 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
-import { getPostAuthPath } from '../../constants/roles'
+import { getPostAuthPath, ROLES } from '../../constants/roles'
 
 export default function SignUpForm({ role }) {
   const navigate = useNavigate()
@@ -18,15 +18,30 @@ export default function SignUpForm({ role }) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     try {
       const session = await signup({ firstName, lastName, email, password, role })
+
+      if (session.pending) {
+        setSuccess(
+          session.message ||
+            'Your account is pending admin verification. Check your email for updates before logging in.',
+        )
+        setFirstName('')
+        setLastName('')
+        setEmail('')
+        setPassword('')
+        return
+      }
+
       navigate(getPostAuthPath(session.role), { replace: true })
     } catch (err) {
       setError(err.message)
@@ -39,6 +54,9 @@ export default function SignUpForm({ role }) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+      )}
+      {success && (
+        <div className="rounded-lg bg-tertiary-light px-4 py-3 text-sm text-tertiary">{success}</div>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -121,12 +139,25 @@ export default function SignUpForm({ role }) {
         </div>
       </div>
 
+      {role === ROLES.SHOP_OWNER && (
+        <p className="rounded-lg bg-yellow-50 px-4 py-3 text-xs text-yellow-800">
+          Shop owner accounts require admin approval. You will receive an email when your application
+          is reviewed.
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={loading}
         className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
       >
-        {loading ? 'Creating account...' : 'Create Account'}
+        {loading
+          ? role === ROLES.SHOP_OWNER
+            ? 'Submitting application...'
+            : 'Creating account...'
+          : role === ROLES.SHOP_OWNER
+            ? 'Submit Application'
+            : 'Create Account'}
       </button>
 
       <p className="text-center text-xs text-text-muted">

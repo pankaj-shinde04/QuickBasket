@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import connectDB from '../config/db.js'
-import User from '../models/User.js'
+import User, { USER_STATUS } from '../models/User.js'
+import Shop, { SHOP_STATUS } from '../models/Shop.js'
 import { ROLES } from '../constants/roles.js'
+import { buildDefaultShopName } from '../services/vendorService.js'
 import logger from '../utils/logger.js'
 
 const DEMO_USERS = [
@@ -12,6 +14,7 @@ const DEMO_USERS = [
     email: 'customer@quickbasket.com',
     password: 'Test@1234',
     role: ROLES.CUSTOMER,
+    status: USER_STATUS.ACTIVE,
   },
   {
     firstName: 'John',
@@ -19,6 +22,7 @@ const DEMO_USERS = [
     email: 'owner@quickbasket.com',
     password: 'Test@1234',
     role: ROLES.SHOP_OWNER,
+    status: USER_STATUS.ACTIVE,
   },
   {
     firstName: 'Alex',
@@ -26,6 +30,7 @@ const DEMO_USERS = [
     email: 'admin@quickbasket.com',
     password: 'Test@1234',
     role: ROLES.ADMIN,
+    status: USER_STATUS.ACTIVE,
   },
 ]
 
@@ -41,8 +46,18 @@ async function seed() {
     }
 
     const hashedPassword = await bcrypt.hash(user.password, 12)
-    await User.create({ ...user, password: hashedPassword })
+    const createdUser = await User.create({ ...user, password: hashedPassword })
     logger.info(`Created demo user: ${user.email} (${user.role})`)
+
+    if (user.role === ROLES.SHOP_OWNER) {
+      await Shop.create({
+        owner: createdUser._id,
+        name: buildDefaultShopName(user.firstName, user.lastName),
+        email: user.email,
+        status: SHOP_STATUS.ACTIVE,
+      })
+      logger.info(`Created demo shop for: ${user.email}`)
+    }
   }
 
   logger.info('Seed completed')

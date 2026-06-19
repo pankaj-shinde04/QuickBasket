@@ -3,6 +3,15 @@ import * as authService from '../services/authService.js'
 export async function register(req, res) {
   const result = await authService.registerUser(req.body)
 
+  if (result.pending) {
+    return res.status(201).json({
+      success: true,
+      message:
+        'Application submitted successfully. Your account is pending admin verification. Check your email for updates.',
+      data: result,
+    })
+  }
+
   res.status(201).json({
     success: true,
     message: 'Account created successfully.',

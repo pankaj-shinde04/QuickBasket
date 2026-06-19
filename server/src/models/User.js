@@ -4,6 +4,8 @@ import { ROLES } from '../constants/roles.js'
 export const USER_STATUS = {
   ACTIVE: 'active',
   BANNED: 'banned',
+  PENDING: 'pending',
+  REJECTED: 'rejected',
 }
 
 const userSchema = new mongoose.Schema(

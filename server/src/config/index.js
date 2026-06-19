@@ -16,6 +16,10 @@ const config = {
     dir: process.env.UPLOAD_DIR || 'uploads',
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
   },
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY || process.env.API_KEY_RESEND || '',
+    from: process.env.EMAIL_FROM || 'QuickBasket <onboarding@resend.dev>',
+  },
 }
 
 export default config

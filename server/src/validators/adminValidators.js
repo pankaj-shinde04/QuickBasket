@@ -1,5 +1,6 @@
 import { body, param, query } from 'express-validator'
 import { USER_STATUS } from '../models/User.js'
+import { SHOP_STATUS } from '../models/Shop.js'
 import { ROLES } from '../constants/roles.js'
 
 export const createAdminValidator = [
@@ -26,5 +27,19 @@ export const updateUserStatusValidator = [
   param('id').isMongoId().withMessage('Invalid user id'),
   body('status')
     .isIn(Object.values(USER_STATUS))
-    .withMessage('Status must be active or banned'),
+    .withMessage('Invalid user status'),
+]
+
+export const listVendorsValidator = [
+  query('status')
+    .optional()
+    .isIn(Object.values(SHOP_STATUS))
+    .withMessage('Invalid vendor status filter'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive number'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('search').optional().isString(),
+]
+
+export const vendorIdValidator = [
+  param('id').isMongoId().withMessage('Invalid vendor id'),
 ]

@@ -88,6 +88,14 @@ export function AuthProvider({ children }) {
       role,
     })
 
+    if (response.data.pending) {
+      return {
+        ...response.data.user,
+        pending: true,
+        message: response.message,
+      }
+    }
+
     const { user: newUser, token } = response.data
 
     saveToken(token)
