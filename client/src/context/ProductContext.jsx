@@ -61,6 +61,7 @@ function mapProduct(p) {
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
+  const [outOfStockCount, setOutOfStockCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -74,6 +75,7 @@ export function ProductProvider({ children }) {
       const mapped = (res.data.products || []).map(mapProduct)
       setProducts(mapped)
       setLowStockCount(res.data.lowStockCount || 0)
+      setOutOfStockCount(res.data.outOfStockCount || 0)
     } catch (err) {
       setError(err.message || 'Failed to load products.')
     } finally {
@@ -114,6 +116,7 @@ export function ProductProvider({ children }) {
       products,
       totalProducts: products.length,
       lowStockCount,
+      outOfStockCount,
       loading,
       error,
       getProduct,
@@ -122,7 +125,7 @@ export function ProductProvider({ children }) {
       deleteProduct,
       refresh: fetchProducts,
     }),
-    [products, lowStockCount, loading, error, getProduct, addProduct, updateProduct, deleteProduct, fetchProducts],
+    [products, lowStockCount, outOfStockCount, loading, error, getProduct, addProduct, updateProduct, deleteProduct, fetchProducts],
   )
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>

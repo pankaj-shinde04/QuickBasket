@@ -3,6 +3,7 @@ import ProtectedRoute, { GuestRoute, StorefrontRoute } from './components/Protec
 import CustomerLayout from './components/customer/CustomerLayout'
 import ShopOwnerLayout from './components/shop-owner/ShopOwnerLayout'
 import { ProductProvider } from './context/ProductContext'
+import { ShopProvider } from './context/ShopContext'
 import { ROLES } from './constants/roles'
 import Home from './pages/Home'
 import About from './pages/About'
@@ -22,6 +23,7 @@ import ShopOwnerOrders from './pages/shop-owner/Orders'
 import ShopOwnerOrderDetails from './pages/shop-owner/OrderDetails'
 import ShopOwnerPlaceholder from './pages/shop-owner/Placeholder'
 import RegisterShop from './pages/shop-owner/RegisterShop'
+import ShopOwnerSettings from './pages/shop-owner/Settings'
 import ShopOwnerRegistrationGuard from './components/shop-owner/ShopOwnerRegistrationGuard'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminDashboard from './pages/AdminDashboard'
@@ -79,9 +81,11 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={[ROLES.SHOP_OWNER]}>
             <ShopOwnerRegistrationGuard>
-              <ProductProvider>
-                <ShopOwnerLayout />
-              </ProductProvider>
+              <ShopProvider>
+                <ProductProvider>
+                  <ShopOwnerLayout />
+                </ProductProvider>
+              </ShopProvider>
             </ShopOwnerRegistrationGuard>
           </ProtectedRoute>
         }
@@ -96,10 +100,7 @@ export default function App() {
           path="reports"
           element={<ShopOwnerPlaceholder title="Reports" />}
         />
-        <Route
-          path="settings"
-          element={<ShopOwnerPlaceholder title="Settings" />}
-        />
+        <Route path="settings" element={<ShopOwnerSettings />} />
       </Route>
 
       <Route

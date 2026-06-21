@@ -6,10 +6,11 @@ import {
   HiOutlineChartBar,
   HiOutlineCog6Tooth,
   HiOutlinePlus,
-  HiOutlineUserCircle,
   HiOutlineArrowRightOnRectangle,
+  HiOutlineBuildingStorefront,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
+import { useShop } from '../../context/ShopContext'
 
 export const shopOwnerNavItems = [
   { to: '/dashboard/shop-owner', label: 'Dashboard', icon: HiOutlineSquares2X2, end: true },
@@ -20,7 +21,8 @@ export const shopOwnerNavItems = [
 ]
 
 export default function ShopOwnerSidebarContent({ onNavigate, showBrand = true }) {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const { shop } = useShop()
   const navigate = useNavigate()
 
   const close = () => onNavigate?.()
@@ -41,7 +43,7 @@ export default function ShopOwnerSidebarContent({ onNavigate, showBrand = true }
         <div className="border-b border-neutral-border px-5 py-5">
           <Link to="/dashboard/shop-owner" className="block" onClick={close}>
             <h1 className="text-lg font-bold text-primary">QuickBasket</h1>
-            <p className="text-xs text-text-muted">Platform Management</p>
+            <p className="text-xs text-text-muted">Seller Dashboard</p>
           </Link>
         </div>
       )}
@@ -67,14 +69,32 @@ export default function ShopOwnerSidebarContent({ onNavigate, showBrand = true }
         ))}
       </nav>
 
+      {/* Profile card at bottom */}
       <div className="border-t border-neutral-border p-4">
-        <div className="mb-4 flex items-center gap-3">
-          <HiOutlineUserCircle className="h-10 w-10 shrink-0 text-text-muted" />
+        <Link
+          to="/dashboard/shop-owner/settings"
+          onClick={close}
+          className="mb-4 flex items-center gap-3 rounded-xl p-2 transition hover:bg-neutral"
+        >
+          {shop?.logo ? (
+            <img
+              src={shop.logo}
+              alt={shop.name}
+              className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-primary/20"
+            />
+          ) : (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light">
+              <HiOutlineBuildingStorefront className="h-5 w-5 text-primary" />
+            </span>
+          )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text-dark">Store Owner</p>
-            <p className="truncate text-xs text-text-muted">{user?.email}</p>
+            <p className="truncate text-sm font-semibold text-text-dark">
+              {shop?.name || 'My Store'}
+            </p>
+            <p className="truncate text-xs text-text-muted">View Settings</p>
           </div>
-        </div>
+        </Link>
+
         <button
           type="button"
           onClick={handleAddProduct}

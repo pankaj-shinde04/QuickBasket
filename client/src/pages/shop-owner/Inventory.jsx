@@ -20,7 +20,7 @@ const PLACEHOLDER =
   'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&h=100&fit=crop'
 
 export default function ShopOwnerInventory() {
-  const { products, totalProducts, lowStockCount, loading, error, refresh } = useProducts()
+  const { products, totalProducts, lowStockCount, outOfStockCount, loading, error, refresh } = useProducts()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const perPage = 10
@@ -58,15 +58,14 @@ export default function ShopOwnerInventory() {
       </div>
 
       {/* Summary cards */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        {/* Total Products */}
         <div className="flex items-center gap-4 rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-light">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary-light">
             <HiOutlineSquares2X2 className="h-6 w-6 text-primary" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-              Total Products
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Total Products</p>
             <p className="text-2xl font-bold text-text-dark">{totalProducts.toLocaleString()}</p>
             <p className="flex items-center gap-1 text-xs font-medium text-tertiary">
               <HiOutlineArrowTrendingUp className="h-3.5 w-3.5" />
@@ -75,25 +74,52 @@ export default function ShopOwnerInventory() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-5">
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-100">
-              <HiOutlineExclamationTriangle className="h-6 w-6 text-red-500" />
-            </span>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-red-600">
-                Attention Needed
-              </p>
-              <p className="text-lg font-bold text-red-600">{lowStockCount} Items Low on Stock</p>
-              <p className="text-xs text-red-500">Items at or below minimum threshold.</p>
-            </div>
+        {/* Out of Stock */}
+        <div className={`flex items-center gap-4 rounded-xl border p-5 shadow-sm ${
+          outOfStockCount > 0
+            ? 'border-red-200 bg-red-50'
+            : 'border-neutral-border bg-white'
+        }`}>
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
+            outOfStockCount > 0 ? 'bg-red-100' : 'bg-neutral'
+          }`}>
+            <HiOutlineExclamationTriangle className={`h-6 w-6 ${outOfStockCount > 0 ? 'text-red-500' : 'text-text-muted'}`} />
+          </span>
+          <div>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${outOfStockCount > 0 ? 'text-red-600' : 'text-text-muted'}`}>
+              Out of Stock
+            </p>
+            <p className={`text-2xl font-bold ${outOfStockCount > 0 ? 'text-red-600' : 'text-text-dark'}`}>
+              {outOfStockCount} {outOfStockCount === 1 ? 'Item' : 'Items'}
+            </p>
+            <p className={`text-xs ${outOfStockCount > 0 ? 'text-red-500' : 'text-text-muted'}`}>
+              {outOfStockCount > 0 ? 'Needs immediate restocking' : 'All items in stock'}
+            </p>
           </div>
-          <button
-            type="button"
-            className="hidden shrink-0 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 sm:block"
-          >
-            Review Stock
-          </button>
+        </div>
+
+        {/* Low Stock */}
+        <div className={`flex items-center gap-4 rounded-xl border p-5 shadow-sm ${
+          lowStockCount > 0
+            ? 'border-yellow-200 bg-yellow-50'
+            : 'border-neutral-border bg-white'
+        }`}>
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
+            lowStockCount > 0 ? 'bg-yellow-100' : 'bg-neutral'
+          }`}>
+            <HiOutlineExclamationTriangle className={`h-6 w-6 ${lowStockCount > 0 ? 'text-yellow-500' : 'text-text-muted'}`} />
+          </span>
+          <div>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${lowStockCount > 0 ? 'text-yellow-600' : 'text-text-muted'}`}>
+              Low Stock
+            </p>
+            <p className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-yellow-600' : 'text-text-dark'}`}>
+              {lowStockCount} {lowStockCount === 1 ? 'Item' : 'Items'}
+            </p>
+            <p className={`text-xs ${lowStockCount > 0 ? 'text-yellow-500' : 'text-text-muted'}`}>
+              {lowStockCount > 0 ? 'Below minimum threshold' : 'Stock levels healthy'}
+            </p>
+          </div>
         </div>
       </div>
 

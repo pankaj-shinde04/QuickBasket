@@ -64,14 +64,23 @@ export async function listProducts(ownerId, { page = 1, limit = 20, search = '',
     Product.countDocuments(query),
   ])
 
+  // Out of stock: exactly 0 units
+  const outOfStockCount = await Product.countDocuments({
+    shop: shop._id,
+    stock: 0,
+  })
+
+  // Low stock: above 0 but at or below threshold
   const lowStockCount = await Product.countDocuments({
     shop: shop._id,
+    stock: { $gt: 0 },
     $expr: { $lte: ['$stock', '$lowStockThreshold'] },
   })
 
   return {
     products: products.map(formatProduct),
     total,
+    outOfStockCount,
     lowStockCount,
     page: Number(page),
     limit: Number(limit),
