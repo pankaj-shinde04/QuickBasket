@@ -11,9 +11,9 @@ import Auth from './pages/Auth'
 import CustomerDashboard from './pages/CustomerDashboard'
 import CustomerOrderHistory from './pages/customer/OrderHistory'
 import CustomerOrderTracking from './pages/customer/OrderTracking'
-import CustomerWishlist from './pages/customer/Wishlist'
 import CustomerCart from './pages/customer/Cart'
 import CustomerCheckout from './pages/customer/Checkout'
+import CustomerSettings from './pages/customer/Settings'
 import CustomerPlaceholder from './pages/customer/Placeholder'
 import ShopOwnerDashboard from './pages/ShopOwnerDashboard'
 import ShopOwnerInventory from './pages/shop-owner/Inventory'
@@ -58,13 +58,10 @@ export default function App() {
         <Route index element={<CustomerDashboard />} />
         <Route path="orders" element={<CustomerOrderHistory />} />
         <Route path="orders/:orderId/track" element={<CustomerOrderTracking />} />
-        <Route path="wishlist" element={<CustomerWishlist />} />
+
         <Route path="cart" element={<CustomerCart />} />
         <Route path="checkout" element={<CustomerCheckout />} />
-        <Route path="rewards" element={<CustomerPlaceholder title="Rewards" />} />
-        <Route path="settings" element={<CustomerPlaceholder title="Settings" />} />
-        <Route path="analytics" element={<CustomerPlaceholder title="Analytics" />} />
-        <Route path="users" element={<CustomerPlaceholder title="Users" />} />
+        <Route path="settings" element={<CustomerSettings />} />
       </Route>
 
       <Route

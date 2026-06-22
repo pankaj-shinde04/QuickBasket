@@ -6,6 +6,7 @@ export function formatPublicUser(user) {
     email: user.email,
     role: user.role,
     status: user.status,
+    avatar: user.avatar || '',
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }

@@ -4,6 +4,8 @@ import adminRoutes from './adminRoutes.js'
 import shopRoutes from './shopRoutes.js'
 import productRoutes from './productRoutes.js'
 import settingsRoutes from './settingsRoutes.js'
+import publicRoutes from './publicRoutes.js'
+import orderRoutes from './orderRoutes.js'
 
 const router = Router()
 
@@ -20,5 +22,7 @@ router.use('/admin', adminRoutes)
 router.use('/shops', shopRoutes)
 router.use('/products', productRoutes)
 router.use('/settings', settingsRoutes)
+router.use('/public', publicRoutes)
+router.use('/orders', orderRoutes)
 
 export default router

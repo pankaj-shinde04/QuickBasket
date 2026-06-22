@@ -2,17 +2,16 @@ import { NavLink, Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlineSquares2X2,
   HiOutlineCube,
-  HiOutlineChartBar,
   HiOutlineCog6Tooth,
   HiOutlineShoppingCart,
   HiOutlineArrowRightOnRectangle,
+  HiOutlineUserCircle,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
 
 export const customerNavItems = [
   { to: '/dashboard/customer', label: 'Dashboard', icon: HiOutlineSquares2X2, end: true },
   { to: '/dashboard/customer/orders', label: 'My Orders', icon: HiOutlineCube },
-  { to: '/dashboard/customer/rewards', label: 'Rewards', icon: HiOutlineChartBar },
   { to: '/dashboard/customer/settings', label: 'Settings', icon: HiOutlineCog6Tooth },
 ]
 
@@ -22,20 +21,27 @@ export default function CustomerSidebarContent({ onNavigate }) {
   const close = () => onNavigate?.()
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest'
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()
 
   return (
     <>
-      {/* Profile */}
+      {/* Profile card */}
       <div className="border-b border-neutral-border px-5 py-5">
         <div className="flex items-center gap-3">
-          <img
-            src={`https://i.pravatar.cc/150?u=${user?.email}`}
-            alt={fullName}
-            className="h-12 w-12 rounded-full object-cover ring-2 ring-primary-light"
-          />
+          {user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt={fullName}
+              className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-primary-light"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-light ring-2 ring-primary/20">
+              <span className="text-base font-bold text-primary">{initials || <HiOutlineUserCircle className="h-6 w-6" />}</span>
+            </div>
+          )}
           <div className="min-w-0">
             <p className="truncate font-semibold text-text-dark">{fullName}</p>
-            <p className="text-xs font-medium text-primary">Premium Member</p>
+            <p className="text-xs font-medium text-primary">Customer</p>
           </div>
         </div>
       </div>
@@ -66,21 +72,15 @@ export default function CustomerSidebarContent({ onNavigate }) {
       <div className="border-t border-neutral-border p-4">
         <button
           type="button"
-          onClick={() => {
-            navigate('/')
-            close()
-          }}
+          onClick={() => { navigate('/'); close() }}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
         >
           <HiOutlineShoppingCart className="h-5 w-5" />
-          Start New Order
+          Start Shopping
         </button>
         <button
           type="button"
-          onClick={() => {
-            logout()
-            close()
-          }}
+          onClick={() => { logout(); close() }}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-border py-2 text-xs font-medium text-text-muted hover:bg-neutral"
         >
           <HiOutlineArrowRightOnRectangle className="h-4 w-4" />

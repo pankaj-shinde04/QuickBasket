@@ -1,40 +1,47 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  HiOutlineTrash,
   HiOutlineMinus,
   HiOutlinePlus,
+  HiOutlineTrash,
   HiOutlineArrowRight,
-  HiOutlineInformationCircle,
-  HiOutlineBookmark,
   HiOutlineShoppingCart,
+  HiOutlineInformationCircle,
 } from 'react-icons/hi2'
 import CustomerFooter from '../../components/customer/CustomerFooter'
-import { cartItems as initialCart, savedForLater, cartSummary } from '../../data/customerShopData'
+import { useCart } from '../../context/CartContext'
+
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&h=150&fit=crop'
 
 export default function CustomerCart() {
-  const [items, setItems] = useState(initialCart)
-  const [promo, setPromo] = useState('')
+  const { items, setQty, removeFromCart, subtotal, serviceFee, total, cartCount } = useCart()
+  const freeDelivery = subtotal >= 500
 
-  const updateQty = (id, delta) => {
-    setItems((prev) =>
-      prev
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-            : item,
-        ),
+  if (items.length === 0) {
+    return (
+      <div>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+          <HiOutlineShoppingCart className="h-16 w-16 text-neutral-border" />
+          <h1 className="mt-4 text-xl font-bold text-text-dark">Your cart is empty</h1>
+          <p className="mt-2 text-sm text-text-muted">Looks like you haven't added anything yet.</p>
+          <Link
+            to="/"
+            className="mt-6 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            Browse Products
+          </Link>
+        </div>
+        <CustomerFooter variant="simple" />
+      </div>
     )
   }
-
-  const removeItem = (id) => setItems((prev) => prev.filter((i) => i.id !== id))
-
-  const lineTotal = (item) => item.price * item.quantity
 
   return (
     <div>
       <div className="p-4 sm:p-6 lg:p-8">
-        <h1 className="text-2xl font-bold text-text-dark sm:text-3xl">Your Shopping Cart</h1>
+        <h1 className="text-2xl font-bold text-text-dark sm:text-3xl">
+          Your Cart{' '}
+          <span className="text-base font-normal text-text-muted">({cartCount} items)</span>
+        </h1>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
           {/* Cart items */}
@@ -43,52 +50,56 @@ export default function CustomerCart() {
               {items.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:p-5 ${
+                  className={`flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5 ${
                     i < items.length - 1 ? 'border-b border-neutral-border' : ''
                   }`}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                     <img
-                      src={item.image}
+                      src={item.image || PLACEHOLDER}
                       alt={item.name}
+                      onError={(e) => { e.target.src = PLACEHOLDER }}
                       className="h-16 w-16 shrink-0 rounded-lg object-cover sm:h-20 sm:w-20"
                     />
                     <div className="min-w-0 flex-1">
-                    <span
-                      className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${item.categoryColor}`}
-                    >
-                      {item.category}
-                    </span>
-                    <h3 className="mt-1 font-semibold text-text-dark">{item.name}</h3>
-                    <p className="text-sm text-text-muted">{item.description}</p>
+                      <span className="text-xs font-bold uppercase tracking-wider text-tertiary">
+                        {item.category}
+                      </span>
+                      <h3 className="mt-0.5 font-semibold text-text-dark line-clamp-1">{item.name}</h3>
+                      <p className="text-sm text-text-muted">
+                        ₹{Number(item.price).toFixed(2)} / {item.unit || 'ea'}
+                      </p>
                     </div>
                   </div>
+
                   <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                    {/* Qty controls */}
                     <div className="flex items-center rounded-full bg-neutral">
                       <button
                         type="button"
-                        onClick={() => updateQty(item.id, -1)}
+                        onClick={() => setQty(item.id, item.qty - 1)}
                         className="rounded-full p-2 hover:bg-gray-200"
                       >
                         <HiOutlineMinus className="h-4 w-4" />
                       </button>
-                      <span className="w-8 text-center text-sm font-semibold">
-                        {item.quantity}
-                      </span>
+                      <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
                       <button
                         type="button"
-                        onClick={() => updateQty(item.id, 1)}
-                        className="rounded-full p-2 hover:bg-gray-200"
+                        onClick={() => setQty(item.id, item.qty + 1)}
+                        disabled={item.qty >= (item.stock ?? 999)}
+                        className="rounded-full p-2 hover:bg-gray-200 disabled:opacity-40"
                       >
                         <HiOutlinePlus className="h-4 w-4" />
                       </button>
                     </div>
-                    <p className="w-16 text-right font-bold text-primary">
-                      ${lineTotal(item).toFixed(2)}
+
+                    <p className="w-20 text-right font-bold text-primary">
+                      ₹{(Number(item.price) * item.qty).toFixed(2)}
                     </p>
+
                     <button
                       type="button"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeFromCart(item.id)}
                       className="text-red-400 hover:text-red-600"
                       aria-label="Remove item"
                     >
@@ -105,20 +116,22 @@ export default function CustomerCart() {
             <h2 className="font-bold text-text-dark">Order Summary</h2>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between text-text-muted">
-                <span>Subtotal ({cartSummary.itemCount} items)</span>
-                <span>${cartSummary.subtotal.toFixed(2)}</span>
+                <span>Subtotal ({cartCount} items)</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-text-muted">
                 <span>Delivery Fee</span>
-                <span className="font-semibold text-tertiary">Free</span>
+                <span className={freeDelivery ? 'font-semibold text-tertiary' : ''}>
+                  {freeDelivery ? 'Free' : '₹49.00'}
+                </span>
               </div>
               <div className="flex justify-between text-text-muted">
                 <span>Service Fee</span>
-                <span>${cartSummary.serviceFee.toFixed(2)}</span>
+                <span>₹{serviceFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between border-t border-neutral-border pt-3 text-lg font-bold">
                 <span className="text-text-dark">Total</span>
-                <span className="text-primary">${cartSummary.total.toFixed(2)}</span>
+                <span className="text-primary">₹{(total + (freeDelivery ? 0 : 49)).toFixed(2)}</span>
               </div>
             </div>
 
@@ -130,69 +143,19 @@ export default function CustomerCart() {
               <HiOutlineArrowRight className="h-5 w-5" />
             </Link>
 
-            <div className="mt-4 flex items-start gap-2 rounded-lg bg-primary-light p-3 text-xs text-primary">
-              <HiOutlineInformationCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              Congratulations! You&apos;ve unlocked Free Delivery on this order.
-            </div>
-
-            <div className="mt-5">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-muted">
-                Promo Code
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={promo}
-                  onChange={(e) => setPromo(e.target.value)}
-                  placeholder="Enter code"
-                  className="flex-1 rounded-lg border border-neutral-border px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-                <button
-                  type="button"
-                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-text-dark hover:bg-secondary-dark"
-                >
-                  Apply
-                </button>
+            {freeDelivery ? (
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-primary-light p-3 text-xs text-primary">
+                <HiOutlineInformationCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                You've unlocked Free Delivery on this order!
               </div>
-            </div>
+            ) : (
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-neutral p-3 text-xs text-text-muted">
+                <HiOutlineInformationCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                Add ₹{(500 - subtotal).toFixed(2)} more to unlock Free Delivery.
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Saved for later */}
-        <section className="mt-10">
-          <div className="mb-4 flex items-center gap-2">
-            <HiOutlineBookmark className="h-5 w-5 text-text-muted" />
-            <h2 className="text-lg font-bold text-text-dark">Saved for Later</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {savedForLater.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-3 rounded-xl border border-neutral-border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4"
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-text-dark">{item.name}</h3>
-                    <p className="text-sm text-text-muted">{item.description}</p>
-                    <p className="mt-1 text-sm font-bold text-primary">${item.price.toFixed(2)}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-1 rounded-lg border border-primary py-2 text-sm font-semibold text-primary hover:bg-primary-light sm:w-auto sm:border-0 sm:py-0 sm:hover:bg-transparent"
-                >
-                  <HiOutlineShoppingCart className="h-4 w-4" />
-                  Move to Cart
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
 
       <CustomerFooter variant="simple" />

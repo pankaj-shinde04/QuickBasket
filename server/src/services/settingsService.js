@@ -6,14 +6,23 @@ import { uploadImageBuffer } from './cloudinaryService.js'
 import { formatPublicUser } from '../utils/userFormatter.js'
 
 /**
- * Update user's first and last name.
+ * Update user's first and last name, and optionally their avatar.
  */
-export async function updateProfile(userId, { firstName, lastName }) {
+export async function updateProfile(userId, { firstName, lastName } = {}, avatarFile) {
   const user = await User.findById(userId)
   if (!user) throw new ApiError(404, 'User not found.')
 
   if (firstName?.trim()) user.firstName = firstName.trim()
   if (lastName?.trim()) user.lastName = lastName.trim()
+
+  if (avatarFile) {
+    if (avatarFile.size > 2 * 1024 * 1024) {
+      throw new ApiError(400, 'Avatar must be 2MB or smaller.')
+    }
+    const url = await uploadImageBuffer(avatarFile.buffer, 'quickbasket/avatars')
+    if (!url) throw new ApiError(500, 'Failed to upload avatar.')
+    user.avatar = url
+  }
 
   await user.save()
   return formatPublicUser(user)

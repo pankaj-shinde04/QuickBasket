@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
     },
+    avatar: { type: String, default: '' },
   },
   {
     timestamps: true,

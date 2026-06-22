@@ -1,9 +1,9 @@
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import * as settingsService from '../services/settingsService.js'
 
-// PATCH /api/settings/profile  — update firstName / lastName
+// PATCH /api/settings/profile  — update firstName / lastName / avatar
 export const updateProfile = asyncHandler(async (req, res) => {
-  const user = await settingsService.updateProfile(req.user._id, req.body)
+  const user = await settingsService.updateProfile(req.user._id, req.body || {}, req.file || null)
   res.json({ success: true, message: 'Profile updated successfully.', data: { user } })
 })
 

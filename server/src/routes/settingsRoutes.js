@@ -7,8 +7,8 @@ const router = Router()
 
 router.use(authenticate)
 
-// Update user name
-router.patch('/profile', updateProfile)
+// Update user name + avatar
+router.patch('/profile', uploadShopLogo, handleMulterError, updateProfile)
 
 // Change password
 router.patch('/password', changePassword)
