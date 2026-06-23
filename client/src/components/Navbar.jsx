@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { HiOutlineShoppingCart, HiOutlineHome, HiOutlineInformationCircle } from 'react-icons/hi2'
+import { HiOutlineShoppingCart, HiOutlineHome, HiOutlineInformationCircle, HiOutlineShoppingBag, HiOutlineEnvelope } from 'react-icons/hi2'
 
 const linkClass = ({ isActive }) =>
   `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
@@ -18,9 +18,17 @@ export default function Navbar() {
         </NavLink>
 
         <div className="flex items-center gap-2">
-          <NavLink to="/" end className={linkClass}>
+          <NavLink to="/" className={linkClass}>
             <HiOutlineHome className="h-5 w-5" />
             Home
+          </NavLink>
+          <NavLink to="/shop" className={linkClass}>
+            <HiOutlineShoppingBag className="h-5 w-5" />
+            Shop
+          </NavLink>
+          <NavLink to="/contact" className={linkClass}>
+            <HiOutlineEnvelope className="h-5 w-5" />
+            Contact
           </NavLink>
           <NavLink to="/about" className={linkClass}>
             <HiOutlineInformationCircle className="h-5 w-5" />

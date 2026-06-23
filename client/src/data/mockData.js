@@ -1,11 +1,7 @@
 export const navLinks = [
   'Home',
-  'Pages',
   'Shop',
-  'Vendor',
-  'Elements',
-  'Blog',
-  'Contact',
+'Contact',
 ]
 
 export const categories = [

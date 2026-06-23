@@ -95,6 +95,18 @@ export default function ProductDetail() {
     setTimeout(() => setAdded(false), 2000)
   }
 
+  const handleBuyNow = () => {
+    if (!isAuthenticated || user?.role !== ROLES.CUSTOMER) {
+      navigate('/auth')
+      return
+    }
+    if (!product) return
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product)
+    }
+    navigate('/dashboard/customer/checkout')
+  }
+
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -270,6 +282,19 @@ export default function ProductDetail() {
                     {outOfStock ? 'Out of Stock' : 'Add to Cart'}
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={outOfStock}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold text-white transition-all sm:flex-none sm:px-10 sm:text-base ${
+                  outOfStock
+                    ? 'cursor-not-allowed bg-neutral-border'
+                    : 'bg-tertiary hover:bg-tertiary-dark'
+                }`}
+              >
+                {outOfStock ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 

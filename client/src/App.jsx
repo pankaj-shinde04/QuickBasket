@@ -33,6 +33,8 @@ import AdminUsers from './pages/admin/Users'
 import AdminSettings from './pages/admin/Settings'
 import ProductDetail from './pages/ProductDetail'
 import CategoryPage from './pages/CategoryPage'
+import Shop from './pages/Shop'
+import Contact from './pages/Contact'
 import Layout from './components/Layout'
 
 export default function App() {
@@ -125,6 +127,8 @@ export default function App() {
       >
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
+        <Route path="shop" element={<Shop />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="category/:categorySlug" element={<CategoryPage />} />
         <Route path="product/:productId" element={<ProductDetail />} />
       </Route>
