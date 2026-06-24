@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { HiOutlineFunnel, HiOutlineXMark, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi2'
 import ProductCard from '../components/ProductCard'
-import { getAllListedProducts, categories } from '../data/mockData'
+import { apiRequest } from '../services/api'
+import { getPublicCategories } from '../services/categoryService'
 
 export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -9,22 +10,59 @@ export default function Shop() {
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [totalProducts, setTotalProducts] = useState(0)
 
-  const allProducts = getAllListedProducts()
+  const fetchCategories = async () => {
+    try {
+      const res = await getPublicCategories()
+      setCategories(res.data.categories || [])
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+    }
+  }
 
-  const filteredProducts = allProducts.filter((product) => {
-    const categoryMatch = selectedCategory === 'All' || product.category === selectedCategory
+  const fetchProducts = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const params = {
+        limit: 1000,
+      }
+      if (selectedCategory !== 'All') {
+        params.category = selectedCategory
+      }
+      const queryString = new URLSearchParams(params).toString()
+      const res = await apiRequest(`/public/products?${queryString}`, { method: 'GET' })
+      setProducts(res.data.products || [])
+      setTotalProducts(res.data.total || 0)
+    } catch (err) {
+      setError(err.message || 'Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+    fetchProducts()
+  }, [selectedCategory])
+
+  const filteredProducts = products.filter((product) => {
     let priceMatch = true
 
     if (priceRange !== 'all') {
-      const price = parseFloat(product.price.replace('$', ''))
+      const price = product.price
       if (priceRange === '0-10') priceMatch = price >= 0 && price <= 10
       else if (priceRange === '10-20') priceMatch = price > 10 && price <= 20
       else if (priceRange === '20-50') priceMatch = price > 20 && price <= 50
       else if (priceRange === '50+') priceMatch = price > 50
     }
 
-    return categoryMatch && priceMatch
+    return priceMatch
   })
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
@@ -95,7 +133,7 @@ export default function Shop() {
               >
                 <option value="All">All Categories</option>
                 {categories.map((category) => (
-                  <option key={category.name} value={category.name}>
+                  <option key={category.id} value={category.name}>
                     {category.icon} {category.name}
                   </option>
                 ))}
@@ -114,10 +152,10 @@ export default function Shop() {
                 className="w-full rounded-lg border border-neutral-border px-3 py-2 text-sm font-medium text-text-dark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="all">All Prices</option>
-                <option value="0-10">Under $10</option>
-                <option value="10-20">$10 - $20</option>
-                <option value="20-50">$20 - $50</option>
-                <option value="50+">$50+</option>
+                <option value="0-10">Under ₹10</option>
+                <option value="10-20">₹10 - ₹20</option>
+                <option value="20-50">₹20 - ₹50</option>
+                <option value="50+">₹50+</option>
               </select>
             </div>
 
@@ -137,7 +175,21 @@ export default function Shop() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-16 text-sm text-text-muted">
+                Loading products...
+              </div>
+            ) : error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 py-16 text-center">
+                <p className="text-sm text-red-600">{error}</p>
+                <button
+                  onClick={fetchProducts}
+                  className="mt-3 text-sm font-semibold text-red-600 hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 sm:gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {paginatedProducts.map((product) => (

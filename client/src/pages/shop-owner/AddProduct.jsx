@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
@@ -8,9 +8,11 @@ import {
   HiOutlineCloudArrowUp,
   HiOutlineBookmark,
   HiOutlineXCircle,
+  HiOutlinePlus,
 } from 'react-icons/hi2'
-import { productCategories, unitTypes } from '../../data/shopOwnerData'
+import { unitTypes } from '../../data/shopOwnerData'
 import { createProduct } from '../../services/productService'
+import { getCategories, createCategory } from '../../services/categoryService'
 import { getAuthToken } from '../../services/api'
 import { useProducts } from '../../context/ProductContext'
 
@@ -30,6 +32,47 @@ export default function ShopOwnerAddProduct() {
     brand: '',
     taxable: true,
   })
+
+  const [categories, setCategories] = useState([])
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false)
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: 'bg-neutral text-text-dark' })
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [creatingCategory, setCreatingCategory] = useState(false)
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true)
+    try {
+      const token = getAuthToken()
+      const res = await getCategories(token)
+      setCategories(res.data.categories || [])
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
+  const handleCreateCategory = async () => {
+    if (!newCategory.name.trim()) return
+
+    setCreatingCategory(true)
+    try {
+      const token = getAuthToken()
+      await createCategory(token, newCategory)
+      await fetchCategories()
+      setNewCategory({ name: '', icon: '📦', color: 'bg-neutral text-text-dark' })
+      setShowNewCategoryForm(false)
+    } catch (err) {
+      console.error('Category creation error:', err)
+      alert(err.message || 'Failed to create category')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
 
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -242,19 +285,97 @@ export default function ShopOwnerAddProduct() {
                   <label className="mb-1.5 block text-sm font-medium text-text-muted">
                     Product Category *
                   </label>
-                  <select
-                    required
-                    value={form.category}
-                    onChange={(e) => update('category', e.target.value)}
-                    className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-                  >
-                    <option value="">Select category</option>
-                    {productCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  {loadingCategories ? (
+                    <p className="text-sm text-text-muted">Loading categories...</p>
+                  ) : (
+                    <>
+                      <select
+                        required
+                        value={form.category}
+                        onChange={(e) => update('category', e.target.value)}
+                        className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat.name}>
+                            {cat.icon} {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCategoryForm(!showNewCategoryForm)}
+                        className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dark"
+                      >
+                        <HiOutlinePlus className="h-4 w-4" />
+                        {showNewCategoryForm ? 'Cancel' : 'Create New Category'}
+                      </button>
+                    </>
+                  )}
+
+                  {/* New Category Form */}
+                  {showNewCategoryForm && (
+                    <div className="mt-4 rounded-lg border border-neutral-border bg-neutral p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-medium text-text-muted">
+                            Category Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={newCategory.name}
+                            onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                            placeholder="e.g. Organic Products"
+                            className="w-full rounded-lg border border-neutral-border px-4 py-2 text-sm outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-text-muted">
+                              Icon
+                            </label>
+                            <input
+                              type="text"
+                              value={newCategory.icon}
+                              onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
+                              placeholder="📦"
+                              className="w-full rounded-lg border border-neutral-border px-4 py-2 text-sm outline-none focus:border-primary"
+                              maxLength={10}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-text-muted">
+                              Color Class
+                            </label>
+                            <input
+                              type="text"
+                              value={newCategory.color}
+                              onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                              placeholder="bg-neutral text-text-dark"
+                              className="w-full rounded-lg border border-neutral-border px-4 py-2 text-sm outline-none focus:border-primary"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCreateCategory}
+                            disabled={creatingCategory || !newCategory.name.trim()}
+                            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+                          >
+                            {creatingCategory ? 'Creating...' : 'Create Category'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowNewCategoryForm(false)}
+                            className="rounded-lg border border-neutral-border px-4 py-2 text-sm font-semibold text-text-dark hover:bg-neutral"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-text-muted">

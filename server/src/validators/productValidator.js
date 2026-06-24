@@ -1,5 +1,5 @@
 import { body, param, query } from 'express-validator'
-import { PRODUCT_CATEGORIES, UNIT_TYPES } from '../models/Product.js'
+import { UNIT_TYPES } from '../models/Product.js'
 
 export const validateCreateProduct = [
   body('name')
@@ -8,8 +8,9 @@ export const validateCreateProduct = [
     .isLength({ max: 200 }).withMessage('Name must be under 200 characters.'),
 
   body('category')
+    .trim()
     .notEmpty().withMessage('Category is required.')
-    .isIn(PRODUCT_CATEGORIES).withMessage(`Category must be one of: ${PRODUCT_CATEGORIES.join(', ')}.`),
+    .isLength({ max: 100 }).withMessage('Category must be under 100 characters.'),
 
   body('price')
     .notEmpty().withMessage('Price is required.')
@@ -41,7 +42,13 @@ export const validateCreateProduct = [
 
   body('taxable')
     .optional()
-    .isBoolean().withMessage('Taxable must be true or false.'),
+    .custom((value) => {
+      // Handle string 'true'/'false' from FormData
+      if (typeof value === 'string') {
+        return value === 'true' || value === 'false'
+      }
+      return typeof value === 'boolean'
+    }).withMessage('Taxable must be true or false.'),
 
   body('lowStockThreshold')
     .optional()
@@ -59,7 +66,8 @@ export const validateUpdateProduct = [
 
   body('category')
     .optional()
-    .isIn(PRODUCT_CATEGORIES).withMessage(`Category must be one of: ${PRODUCT_CATEGORIES.join(', ')}.`),
+    .trim()
+    .isLength({ max: 100 }).withMessage('Category must be under 100 characters.'),
 
   body('price')
     .optional()
@@ -79,7 +87,13 @@ export const validateUpdateProduct = [
 
   body('taxable')
     .optional()
-    .isBoolean().withMessage('Taxable must be true or false.'),
+    .custom((value) => {
+      // Handle string 'true'/'false' from FormData
+      if (typeof value === 'string') {
+        return value === 'true' || value === 'false'
+      }
+      return typeof value === 'boolean'
+    }).withMessage('Taxable must be true or false.'),
 
   body('lowStockThreshold')
     .optional()
@@ -93,5 +107,4 @@ export const validateProductId = [
 export const validateListProducts = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer.'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.'),
-  query('category').optional().isIn(PRODUCT_CATEGORIES).withMessage('Invalid category.'),
 ]

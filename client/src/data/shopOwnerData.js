@@ -150,12 +150,14 @@ export const initialProducts = [
 ]
 
 export const productCategories = [
-  'Fresh Produce',
-  'Dairy Alternatives',
-  'Bakery',
+  'Vegetables',
+  'Fresh Fruits',
+  'Desserts',
+  'Drinks',
   'Snacks',
-  'Beverages',
-  'Frozen Foods',
+  'Bakery',
+  'Dairy',
+  'Meat',
 ]
 
 export const unitTypes = ['Piece', 'per lb', 'per kg', 'per pack', 'per bottle']

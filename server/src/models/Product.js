@@ -1,14 +1,5 @@
 import mongoose from 'mongoose'
 
-export const PRODUCT_CATEGORIES = [
-  'Fresh Produce',
-  'Dairy Alternatives',
-  'Bakery',
-  'Snacks',
-  'Beverages',
-  'Frozen Foods',
-]
-
 export const UNIT_TYPES = ['Piece', 'per lb', 'per kg', 'per pack', 'per bottle']
 
 function generateSKU() {
@@ -36,7 +27,6 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: PRODUCT_CATEGORIES,
     },
     brand: {
       type: String,

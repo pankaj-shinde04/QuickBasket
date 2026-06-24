@@ -8,12 +8,14 @@ const ProductContext = createContext(null)
 
 function getCategoryColor(category) {
   const map = {
-    'Fresh Produce': 'bg-yellow-100 text-yellow-800',
-    'Dairy Alternatives': 'bg-tertiary-light text-tertiary',
+    Vegetables: 'bg-green-100 text-green-800',
+    'Fresh Fruits': 'bg-red-100 text-red-800',
+    Desserts: 'bg-pink-100 text-pink-800',
+    Drinks: 'bg-blue-100 text-blue-800',
+    Snacks: 'bg-yellow-100 text-yellow-800',
     Bakery: 'bg-amber-100 text-amber-800',
-    Snacks: 'bg-orange-100 text-orange-800',
-    Beverages: 'bg-blue-100 text-blue-800',
-    'Frozen Foods': 'bg-sky-100 text-sky-800',
+    Dairy: 'bg-sky-100 text-sky-800',
+    Meat: 'bg-rose-100 text-rose-800',
   }
   return map[category] ?? 'bg-neutral text-text-dark'
 }

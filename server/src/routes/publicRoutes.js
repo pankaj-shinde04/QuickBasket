@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import Product from '../models/Product.js'
 import Shop from '../models/Shop.js'
+import Category from '../models/Category.js'
 
 const router = Router()
 
@@ -61,7 +62,15 @@ router.get('/products', async (req, res) => {
 
 // GET /api/public/products/:id
 router.get('/products/:id', async (req, res) => {
-  const product = await Product.findById(req.params.id).lean()
+  // Check if the ID is a valid MongoDB ObjectId
+  const { id } = req.params
+  const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(id)
+
+  if (!isValidObjectId) {
+    return res.status(404).json({ success: false, message: 'Product not found.' })
+  }
+
+  const product = await Product.findById(id).lean()
   if (!product) return res.status(404).json({ success: false, message: 'Product not found.' })
 
   const shop = product.shop
@@ -93,10 +102,16 @@ router.get('/products/:id', async (req, res) => {
   })
 })
 
-// GET /api/public/categories — distinct categories
+// GET /api/public/categories — get all active categories
 router.get('/categories', async (_req, res) => {
-  const categories = await Product.distinct('category')
-  res.json({ success: true, data: { categories } })
+  const categories = await Category.find({ isActive: true }).sort({ name: 1 })
+  const formatted = categories.map((cat) => ({
+    id: cat._id.toString(),
+    name: cat.name,
+    icon: cat.icon,
+    color: cat.color,
+  }))
+  res.json({ success: true, data: { categories: formatted } })
 })
 
 export default router
