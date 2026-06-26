@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlineBars3,
   HiOutlineMagnifyingGlass,
   HiOutlineUser,
-  HiOutlineChevronDown,
   HiOutlineGift,
   HiOutlinePhone,
   HiOutlineXMark,
@@ -17,18 +16,28 @@ import { getDashboardPath, ROLES } from '../constants/roles'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
   const { isAuthenticated, user } = useAuth()
   const accountPath =
     isAuthenticated && user?.role === ROLES.CUSTOMER
       ? getDashboardPath(user.role)
       : '/auth'
 
+  const handleSearch = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
       {/* Top announcement bar */}
       <div className="bg-primary px-4 py-2 text-center text-xs text-white sm:text-sm">
         <p>
-          Free delivery on orders over <strong>$50</strong> — Shop fresh groceries today!
+          Free delivery on orders over <strong>₹500</strong> — Shop fresh groceries today!
         </p>
       </div>
 
@@ -62,31 +71,23 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Categories — hidden on mobile, shown tablet+ */}
-          <button
-            type="button"
-            className="hidden shrink-0 items-center gap-2 rounded-lg border border-neutral-border bg-neutral px-4 py-2.5 text-sm font-medium text-text-dark hover:bg-gray-100 md:flex"
-          >
-            <HiOutlineBars3 className="h-5 w-5 lg:h-6 lg:w-6" />
-            All Categories
-            <HiOutlineChevronDown className="h-4 w-4 text-text-muted" />
-          </button>
-
           {/* Search bar */}
-          <div className="flex w-full items-center overflow-hidden rounded-full border border-neutral-border bg-neutral lg:flex-1">
+          <form onSubmit={handleSearch} className="flex w-full items-center overflow-hidden rounded-full border border-neutral-border bg-neutral lg:flex-1">
             <input
               type="search"
               placeholder="Search for products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm outline-none placeholder:text-text-muted sm:px-5"
             />
             <button
-              type="button"
+              type="submit"
               className="flex shrink-0 items-center gap-2 bg-secondary px-4 py-2.5 text-sm font-semibold text-text-dark transition-colors hover:bg-secondary-dark sm:px-6"
             >
               <HiOutlineMagnifyingGlass className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="hidden sm:inline">Search</span>
             </button>
-          </div>
+          </form>
 
           {/* User actions — desktop only */}
           <div className="hidden items-center gap-2 lg:flex lg:gap-3">

@@ -297,8 +297,8 @@ export default function ShopOwnerAddProduct() {
                       >
                         <option value="">Select category</option>
                         {categories.map((cat) => (
-                          <option key={cat._id} value={cat.name}>
-                            {cat.icon} {cat.name}
+                          <option key={cat._id || cat.id} value={cat.name}>
+                            {cat.icon || ''} {cat.name}
                           </option>
                         ))}
                       </select>

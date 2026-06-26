@@ -133,8 +133,8 @@ export default function Shop() {
               >
                 <option value="All">All Categories</option>
                 {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.icon} {category.name}
+                  <option key={category.id || category.name} value={category.name}>
+                    {category.icon || ''} {category.name}
                   </option>
                 ))}
               </select>

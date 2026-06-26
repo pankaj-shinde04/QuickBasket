@@ -114,15 +114,15 @@ export default function CustomerDashboard() {
   const { addToCart, cartCount } = useCart()
 
   const [products, setProducts] = useState([])
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState([{ id: 'all', name: 'All', icon: '', color: '' }])
   const [activeCategory, setActiveCategory] = useState('All')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     apiRequest('/public/categories')
-      .then((res) => setCategories(['All', ...(res.data.categories || [])]))
-      .catch(() => setCategories(['All']))
+      .then((res) => setCategories([{ id: 'all', name: 'All', icon: '', color: '' }, ...(res.data.categories || [])]))
+      .catch(() => setCategories([{ id: 'all', name: 'All', icon: '', color: '' }]))
   }, [])
 
   useEffect(() => {
@@ -193,17 +193,17 @@ export default function CustomerDashboard() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             {categories.map((cat) => (
               <button
-                key={cat}
+                key={cat.id || cat.name}
                 type="button"
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => setActiveCategory(cat.name)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  activeCategory === cat
+                  activeCategory === cat.name
                     ? 'bg-primary text-white'
                     : 'border border-neutral-border bg-white text-text-muted hover:border-primary hover:text-primary'
                 }`}
               >
-                {cat !== 'All' && <HiOutlineTag className="h-3 w-3" />}
-                {cat}
+                {cat.name !== 'All' && <HiOutlineTag className="h-3 w-3" />}
+                {cat.icon || ''} {cat.name}
               </button>
             ))}
           </div>

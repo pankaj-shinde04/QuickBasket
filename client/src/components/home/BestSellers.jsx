@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { HiOutlineHeart, HiOutlineShoppingBag, HiOutlinePlus } from 'react-icons/hi2'
 import { FaStar } from 'react-icons/fa'
 import AddToCartButton from '../AddToCartButton'
-import { bestSellerFeatured, bestSellerProducts } from '../../data/mockData'
+import { apiRequest } from '../../services/api'
 
 function StarRating({ rating }) {
   return (
@@ -97,13 +98,11 @@ function SideProductCard({ product, showDivider }) {
   )
 }
 
-function FeaturedCard() {
-  const featured = bestSellerFeatured
-
+function FeaturedCard({ product }) {
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-primary bg-white shadow-sm">
       <Link
-        to="/product/aptamil-gold"
+        to={`/product/${product.id}`}
         className="block transition-shadow hover:shadow-md"
       >
         <div className="relative bg-neutral px-6 pb-2 pt-6 sm:px-8 sm:pt-8">
@@ -117,21 +116,21 @@ function FeaturedCard() {
           </button>
           <div data-product-image>
             <img
-              src={featured.image}
-              alt={featured.name}
+              src={product.image}
+              alt={product.name}
               className="mx-auto h-44 w-full object-contain sm:h-52 lg:h-56"
             />
           </div>
         </div>
 
         <div className="px-5 pt-4 sm:px-8">
-          <StarRating rating={featured.rating} />
+          <StarRating rating={product.rating} />
           <h3 className="mt-2 text-base font-bold leading-snug text-text-dark sm:text-lg">
-            {featured.name}
+            {product.name}
           </h3>
-          <p className="mt-2 text-xl font-extrabold text-text-dark sm:text-2xl">{featured.price}</p>
+          <p className="mt-2 text-xl font-extrabold text-text-dark sm:text-2xl">{product.price}</p>
           <p className="mt-3 text-xs leading-relaxed text-text-muted sm:text-sm">
-            {featured.description}
+            {product.description}
           </p>
 
           <div className="mt-5">
@@ -139,11 +138,11 @@ function FeaturedCard() {
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500"
-                style={{ width: `${featured.stockPercent}%` }}
+                style={{ width: `${product.stockPercent}%` }}
               />
             </div>
             <p className="mt-1.5 text-sm font-bold text-text-dark">
-              available only: {featured.stockLeft}
+              available only: {product.stockLeft}
             </p>
           </div>
         </div>
@@ -151,7 +150,7 @@ function FeaturedCard() {
 
       <div className="px-5 pb-6 sm:px-8 sm:pb-8">
         <AddToCartButton
-          image={featured.image}
+          image={product.image}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark sm:text-base"
         >
           <HiOutlineShoppingBag className="h-5 w-5" />
@@ -163,8 +162,43 @@ function FeaturedCard() {
 }
 
 export default function BestSellers() {
-  const leftProducts = bestSellerProducts.slice(0, 3)
-  const rightProducts = bestSellerProducts.slice(3, 6)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await apiRequest('/public/products?limit=6')
+        setProducts(res.data.products || [])
+      } catch (err) {
+        console.error('Failed to fetch products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
+
+  const leftProducts = products.slice(0, 3)
+  const rightProducts = products.slice(3, 6)
+
+  if (loading) {
+    return (
+      <section>
+        <div className="mb-5 sm:mb-6 lg:mb-8">
+          <h2 className="text-xl font-bold text-text-dark sm:text-2xl lg:text-3xl">Best Sellers</h2>
+          <p className="mt-1 text-sm text-text-muted sm:text-base">
+            Don&apos;t miss this opportunity at a special discount just for this week.
+          </p>
+        </div>
+        <div className="text-center py-8 text-sm text-text-muted">Loading products...</div>
+      </section>
+    )
+  }
+
+  if (products.length === 0) {
+    return null
+  }
 
   return (
     <section>
@@ -181,7 +215,14 @@ export default function BestSellers() {
           {leftProducts.map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={product}
+              product={{
+                ...product,
+                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
+                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
+                price: `₹${product.discountPrice || product.price}`,
+                rating: 4.5,
+                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
+              }}
               showDivider={i < leftProducts.length - 1}
             />
           ))}
@@ -189,7 +230,15 @@ export default function BestSellers() {
 
         {/* Center featured */}
         <div className="lg:row-span-1">
-          <FeaturedCard />
+          {products[0] && (
+            <FeaturedCard product={{
+              ...products[0],
+              rating: 4.5,
+              stockPercent: 75,
+              stockLeft: '15 items',
+              description: products[0].description || 'Premium quality product with excellent reviews.',
+            }} />
+          )}
         </div>
 
         {/* Right column */}
@@ -197,7 +246,14 @@ export default function BestSellers() {
           {rightProducts.map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={product}
+              product={{
+                ...product,
+                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
+                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
+                price: `₹${product.discountPrice || product.price}`,
+                rating: 4.5,
+                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
+              }}
               showDivider={i < rightProducts.length - 1}
             />
           ))}
@@ -205,11 +261,18 @@ export default function BestSellers() {
 
         {/* Mobile & tablet: stacked side cards below featured */}
         <div className="space-y-5 lg:hidden">
-          {bestSellerProducts.map((product, i) => (
+          {products.map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={product}
-              showDivider={i < bestSellerProducts.length - 1}
+              product={{
+                ...product,
+                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
+                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
+                price: `₹${product.discountPrice || product.price}`,
+                rating: 4.5,
+                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
+              }}
+              showDivider={i < products.length - 1}
             />
           ))}
         </div>
