@@ -28,11 +28,17 @@ export default function CustomerCheckout() {
   const grandTotal = subtotal + serviceFee + deliveryFee
 
   const [form, setForm] = useState({
-    street: '',
-    city: '',
-    postal: '',
+    fullName: '',
     phone: '',
-    notes: '',
+    alternatePhone: '',
+    email: '',
+    street: '',
+    landmark: '',
+    city: '',
+    state: '',
+    postal: '',
+    deliveryInstructions: '',
+    paymentMethod: 'COD',
   })
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState(null)
@@ -42,8 +48,8 @@ export default function CustomerCheckout() {
 
   const handlePlaceOrder = async () => {
     if (items.length === 0) return
-    if (!form.street || !form.city) {
-      setError('Please fill in your delivery address.')
+    if (!form.fullName || !form.phone || !form.street || !form.city || !form.state || !form.postal) {
+      setError('Please fill in all required delivery address fields.')
       return
     }
 
@@ -52,10 +58,132 @@ export default function CustomerCheckout() {
 
     try {
       const token = getAuthToken()
-      const res = await apiRequest('/orders', {
-        method: 'POST',
-        token,
-        body: {
+
+      // If online payment, initiate Razorpay
+      if (form.paymentMethod !== 'COD') {
+        // Create Razorpay order
+        const razorpayRes = await apiRequest('/payments/razorpay/create-order', {
+          method: 'POST',
+          token,
+          body: {
+            amount: grandTotal,
+          },
+        })
+
+        const { razorpayOrder, paymentId } = razorpayRes.data
+
+        // Get Razorpay key
+        const keyRes = await apiRequest('/payments/razorpay/key', {
+          method: 'GET',
+          token,
+        })
+        const { keyId } = keyRes.data
+
+        // Load Razorpay script
+        const script = document.createElement('script')
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+        script.async = true
+        script.onload = () => {
+          const options = {
+            key: keyId,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            name: 'QuickBasket',
+            description: 'Order Payment',
+            order_id: razorpayOrder.id,
+            handler: async function (response) {
+              // Verify payment on backend
+              try {
+                const body = {
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                }
+
+                // Create order after successful payment
+                const orderBody = {
+                  items: items.map((i) => ({
+                    productId: i.id,
+                    name: i.name,
+                    image: i.image || '',
+                    category: i.category || '',
+                    price: i.price,
+                    qty: i.qty,
+                    unit: i.unit || '',
+                  })),
+                  deliveryAddress: {
+                    fullName: form.fullName,
+                    phone: form.phone,
+                    alternatePhone: form.alternatePhone,
+                    email: form.email,
+                    street: form.street,
+                    landmark: form.landmark,
+                    city: form.city,
+                    state: form.state,
+                    postal: form.postal,
+                  },
+                  deliveryInstructions: form.deliveryInstructions,
+                  subtotal,
+                  deliveryFee,
+                  serviceFee,
+                  total: grandTotal,
+                  paymentMethod: form.paymentMethod,
+                  paymentDetails: {
+                    paymentId: paymentId,
+                  },
+                }
+
+                const orderRes = await apiRequest('/orders', {
+                  method: 'POST',
+                  token,
+                  body: orderBody,
+                })
+
+                // Verify payment
+                await apiRequest('/payments/razorpay/verify', {
+                  method: 'POST',
+                  token,
+                  body: {
+                    ...body,
+                    orderId: orderRes.data.order._id,
+                  },
+                })
+
+                clearCart()
+                setSuccess(orderRes.data.order.displayId)
+              } catch (err) {
+                setError(err.message || 'Payment verification failed. Please contact support.')
+              } finally {
+                setPlacing(false)
+              }
+            },
+            prefill: {
+              name: form.fullName,
+              email: form.email,
+              contact: form.phone,
+            },
+            theme: {
+              color: '#4F46E5',
+            },
+            modal: {
+              ondismiss: function () {
+                setPlacing(false)
+                setError('Payment cancelled by user.')
+              },
+            },
+          }
+
+          const rzp = new window.Razorpay(options)
+          rzp.open()
+        }
+        script.onerror = () => {
+          setPlacing(false)
+          setError('Failed to load payment gateway. Please try again.')
+        }
+        document.body.appendChild(script)
+      } else {
+        // COD order
+        const body = {
           items: items.map((i) => ({
             productId: i.id,
             name: i.name,
@@ -66,25 +194,36 @@ export default function CustomerCheckout() {
             unit: i.unit || '',
           })),
           deliveryAddress: {
+            fullName: form.fullName,
+            phone: form.phone,
+            alternatePhone: form.alternatePhone,
+            email: form.email,
             street: form.street,
+            landmark: form.landmark,
             city: form.city,
+            state: form.state,
             postal: form.postal,
           },
-          phone: form.phone,
-          notes: form.notes,
+          deliveryInstructions: form.deliveryInstructions,
           subtotal,
           deliveryFee,
           serviceFee,
           total: grandTotal,
           paymentMethod: 'COD',
-        },
-      })
+        }
 
-      clearCart()
-      setSuccess(res.data.order.displayId)
+        const res = await apiRequest('/orders', {
+          method: 'POST',
+          token,
+          body,
+        })
+
+        clearCart()
+        setSuccess(res.data.order.displayId)
+        setPlacing(false)
+      }
     } catch (err) {
       setError(err.message || 'Failed to place order. Please try again.')
-    } finally {
       setPlacing(false)
     }
   }
@@ -154,6 +293,51 @@ export default function CustomerCheckout() {
                 <h2 className="font-bold text-text-dark">Delivery Address</h2>
               </div>
               <div className="space-y-4 rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-text-muted">Full Name *</label>
+                    <input
+                      required
+                      value={form.fullName}
+                      onChange={(e) => update('fullName', e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-text-muted">Phone Number *</label>
+                    <input
+                      required
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => update('phone', e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-text-muted">Alternate Phone</label>
+                    <input
+                      type="tel"
+                      value={form.alternatePhone}
+                      onChange={(e) => update('alternatePhone', e.target.value)}
+                      placeholder="e.g. 9876543211"
+                      className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-text-muted">Email</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => update('email', e.target.value)}
+                      placeholder="e.g. rahul@example.com"
+                      className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-text-muted">Street Address *</label>
                   <input
@@ -161,6 +345,15 @@ export default function CustomerCheckout() {
                     value={form.street}
                     onChange={(e) => update('street', e.target.value)}
                     placeholder="e.g. 12 MG Road, Koramangala"
+                    className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-text-muted">Landmark</label>
+                  <input
+                    value={form.landmark}
+                    onChange={(e) => update('landmark', e.target.value)}
+                    placeholder="e.g. Near Central Mall"
                     className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
@@ -176,40 +369,29 @@ export default function CustomerCheckout() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-text-muted">Postal Code</label>
+                    <label className="mb-1.5 block text-sm font-medium text-text-muted">State *</label>
                     <input
-                      value={form.postal}
-                      onChange={(e) => update('postal', e.target.value)}
-                      placeholder="e.g. 560034"
+                      required
+                      value={form.state}
+                      onChange={(e) => update('state', e.target.value)}
+                      placeholder="e.g. Karnataka"
                       className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
-              </div>
-            </section>
-
-            {/* Contact */}
-            <section>
-              <div className="mb-3 flex items-center gap-2">
-                <HiOutlinePhone className="h-5 w-5 text-primary" />
-                <h2 className="font-bold text-text-dark">Contact Details</h2>
-              </div>
-              <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
-                <label className="mb-1.5 block text-sm font-medium text-text-muted">Mobile Number</label>
-                <div className="flex gap-2">
-                  <span className="flex items-center rounded-lg border border-neutral-border bg-neutral px-3 text-sm text-text-muted">
-                    +91
-                  </span>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-text-muted">Postal Code *</label>
                   <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => update('phone', e.target.value)}
-                    placeholder="98765 43210"
-                    className="flex-1 rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                    required
+                    value={form.postal}
+                    onChange={(e) => update('postal', e.target.value)}
+                    placeholder="e.g. 560034"
+                    className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
             </section>
+
 
             {/* Instructions */}
             <section>
@@ -221,8 +403,8 @@ export default function CustomerCheckout() {
                 <label className="mb-1.5 block text-sm font-medium text-text-muted">Special Notes</label>
                 <textarea
                   rows={3}
-                  value={form.notes}
-                  onChange={(e) => update('notes', e.target.value)}
+                  value={form.deliveryInstructions}
+                  onChange={(e) => update('deliveryInstructions', e.target.value)}
                   placeholder="e.g. 'Leave at the front door', 'Gate code is 1234'"
                   className="w-full resize-none rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                 />
@@ -235,16 +417,45 @@ export default function CustomerCheckout() {
                 <HiOutlineCreditCard className="h-5 w-5 text-primary" />
                 <h2 className="font-bold text-text-dark">Payment Method</h2>
               </div>
-              <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-3 rounded-lg border-2 border-primary bg-primary-light p-4">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary">
-                    <div className="h-2 w-2 rounded-full bg-white" />
+              <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm space-y-3">
+                <div
+                  onClick={() => update('paymentMethod', 'COD')}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-4 ${
+                    form.paymentMethod === 'COD'
+                      ? 'border-primary bg-primary-light'
+                      : 'border-neutral-border hover:border-neutral-300'
+                  }`}
+                >
+                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                    form.paymentMethod === 'COD' ? 'border-primary bg-primary' : 'border-neutral-border'
+  }`}>
+                    {form.paymentMethod === 'COD' && <div className="h-2 w-2 rounded-full bg-white" />}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-text-dark">Cash on Delivery (COD)</p>
                     <p className="text-xs text-text-muted">Pay when your order arrives</p>
                   </div>
                 </div>
+
+                <div
+                  onClick={() => update('paymentMethod', 'UPI')}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-4 ${
+                    form.paymentMethod === 'UPI'
+                      ? 'border-primary bg-primary-light'
+                      : 'border-neutral-border hover:border-neutral-300'
+                  }`}
+                >
+                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                    form.paymentMethod === 'UPI' ? 'border-primary bg-primary' : 'border-neutral-border'
+                  }`}>
+                    {form.paymentMethod === 'UPI' && <div className="h-2 w-2 rounded-full bg-white" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text-dark">Online Payment</p>
+                    <p className="text-xs text-text-muted">Pay instantly using UPI, Card, NetBanking</p>
+                  </div>
+                </div>
+
               </div>
             </section>
           </div>

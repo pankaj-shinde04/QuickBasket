@@ -7,6 +7,7 @@ import {
   getOrderByDisplayId,
   cancelOrder,
 } from '../services/orderService.js'
+import { placeOrderValidation, validateOrder } from '../validators/orderValidator.js'
 
 const router = express.Router()
 
@@ -17,7 +18,10 @@ router.use(authorize('customer'))
 // POST /api/orders — place a new order
 router.post(
   '/',
+  placeOrderValidation,
+  validateOrder,
   asyncHandler(async (req, res) => {
+    console.log('Order request body:', JSON.stringify(req.body, null, 2))
     const order = await placeOrder(req.user._id, req.body)
     res.status(201).json({ success: true, data: { order } })
   }),

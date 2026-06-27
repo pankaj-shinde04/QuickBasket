@@ -21,8 +21,6 @@ const STATUS_STYLES = {
   Cancelled: 'bg-red-100 text-red-500',
 }
 
-const FILTERS = ['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
-
 function OrderCard({ order, onCancel }) {
   const [expanded, setExpanded] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -176,7 +174,6 @@ export default function CustomerOrderHistory() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeFilter, setActiveFilter] = useState('All')
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -206,10 +203,6 @@ export default function CustomerOrderHistory() {
     }
   }
 
-  const filtered = activeFilter === 'All'
-    ? orders
-    : orders.filter((o) => o.status === activeFilter)
-
   return (
     <div>
       <div className="p-4 sm:p-6 lg:p-8">
@@ -232,33 +225,6 @@ export default function CustomerOrderHistory() {
           </button>
         </div>
 
-        {/* Status filter */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          {FILTERS.map((f) => {
-            const count = f === 'All' ? orders.length : orders.filter((o) => o.status === f).length
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setActiveFilter(f)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  activeFilter === f
-                    ? 'bg-primary text-white'
-                    : 'border border-neutral-border bg-white text-text-muted hover:border-primary hover:text-primary'
-                }`}
-              >
-                {f}
-                {count > 0 && (
-                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    activeFilter === f ? 'bg-white/20 text-white' : 'bg-neutral text-text-muted'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
 
         {/* Loading */}
         {loading && (
@@ -279,33 +245,27 @@ export default function CustomerOrderHistory() {
         )}
 
         {/* Empty state */}
-        {!loading && !error && filtered.length === 0 && (
+        {!loading && !error && orders.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-border bg-white py-16 text-center">
             <HiOutlineShoppingBag className="h-14 w-14 text-neutral-border" />
-            <h2 className="mt-4 font-semibold text-text-dark">
-              {activeFilter === 'All' ? 'No orders yet' : `No ${activeFilter.toLowerCase()} orders`}
-            </h2>
+            <h2 className="mt-4 font-semibold text-text-dark">No orders yet</h2>
             <p className="mt-1 text-sm text-text-muted">
-              {activeFilter === 'All'
-                ? "You haven't placed any orders. Start shopping!"
-                : `You have no orders with status "${activeFilter}".`}
+              You haven't placed any orders. Start shopping!
             </p>
-            {activeFilter === 'All' && (
-              <Link
-                to="/"
-                className="mt-5 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
-              >
-                <HiOutlineShoppingBag className="h-4 w-4" />
-                Browse Products
-              </Link>
-            )}
+            <Link
+              to="/"
+              className="mt-5 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
+              <HiOutlineShoppingBag className="h-4 w-4" />
+              Browse Products
+            </Link>
           </div>
         )}
 
         {/* Order cards */}
-        {!loading && !error && filtered.length > 0 && (
+        {!loading && !error && orders.length > 0 && (
           <div className="space-y-4">
-            {filtered.map((order) => (
+            {orders.map((order) => (
               <OrderCard key={order._id} order={order} onCancel={handleCancel} />
             ))}
           </div>

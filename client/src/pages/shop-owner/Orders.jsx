@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   HiOutlineShoppingCart,
@@ -11,33 +11,64 @@ import {
   HiOutlineChevronRight,
   HiOutlineArrowTrendingUp,
   HiOutlineArrowTrendingDown,
+  HiOutlineArrowPath,
 } from 'react-icons/hi2'
 import ShopOwnerTopBar from '../../components/shop-owner/ShopOwnerTopBar'
-import { orderStats, statusStyles, orders } from '../../data/shopOwnerOrders'
+import { apiRequest, getAuthToken } from '../../services/api'
 
-const statIcons = {
-  new: HiOutlineShoppingCart,
-  delivery: HiOutlineTruck,
-  completed: HiOutlineCheckCircle,
-  returns: HiOutlineExclamationTriangle,
+const STATUS_STYLES = {
+  Pending: 'bg-yellow-100 text-yellow-700',
+  Processing: 'bg-blue-100 text-blue-700',
+  Shipped: 'bg-purple-100 text-purple-700',
+  Delivered: 'bg-green-100 text-green-700',
+  Cancelled: 'bg-red-100 text-red-500',
 }
 
 const TABS = [
-  { key: 'new', label: 'New Orders' },
-  { key: 'active', label: 'Active Orders' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'all', label: 'All Orders' },
+  { key: 'Pending', label: 'Pending' },
+  { key: 'Processing', label: 'Processing' },
+  { key: 'Shipped', label: 'Shipped' },
+  { key: 'Delivered', label: 'Delivered' },
+  { key: 'Cancelled', label: 'Cancelled' },
 ]
 
 export default function ShopOwnerOrders() {
-  const [activeTab, setActiveTab] = useState('new')
+  const [activeTab, setActiveTab] = useState('all')
   const [page, setPage] = useState(1)
-  const perPage = 5
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const perPage = 10
 
-  const filtered = orders.filter((o) => o.tab === activeTab)
+  const fetchOrders = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const token = getAuthToken()
+      const res = await apiRequest('/admin/orders', { token })
+      setOrders(res.data.orders || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load orders.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
+
+  const filtered = activeTab === 'all'
+    ? orders
+    : orders.filter((o) => o.status === activeTab)
   const tabCounts = {
-    new: orders.filter((o) => o.tab === 'new').length,
-    active: orders.filter((o) => o.tab === 'active').length,
-    completed: orders.filter((o) => o.tab === 'completed').length,
+    all: orders.length,
+    Pending: orders.filter((o) => o.status === 'Pending').length,
+    Processing: orders.filter((o) => o.status === 'Processing').length,
+    Shipped: orders.filter((o) => o.status === 'Shipped').length,
+    Delivered: orders.filter((o) => o.status === 'Delivered').length,
+    Cancelled: orders.filter((o) => o.status === 'Cancelled').length,
   }
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
