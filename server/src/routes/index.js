@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import authRoutes from './authRoutes.js'
 import adminRoutes from './adminRoutes.js'
+import adminOrderRoutes from './adminOrderRoutes.js'
 import shopRoutes from './shopRoutes.js'
 import productRoutes from './productRoutes.js'
 import categoryRoutes from './categoryRoutes.js'
@@ -21,6 +22,7 @@ router.get('/health', (_req, res) => {
 
 router.use('/auth', authRoutes)
 router.use('/admin', adminRoutes)
+router.use('/admin/orders', adminOrderRoutes)
 router.use('/shops', shopRoutes)
 router.use('/products', productRoutes)
 router.use('/categories', categoryRoutes)
