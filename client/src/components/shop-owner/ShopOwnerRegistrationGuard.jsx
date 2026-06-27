@@ -8,7 +8,7 @@ export default function ShopOwnerRegistrationGuard({ children }) {
   const { user, isAuthenticated, loading } = useAuth()
   const location = useLocation()
   const [shopLoading, setShopLoading] = useState(true)
-  const [profileComplete, setProfileComplete] = useState(false)
+  const [hasShop, setHasShop] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -22,11 +22,12 @@ export default function ShopOwnerRegistrationGuard({ children }) {
       try {
         const response = await shopApi.fetchMyShop()
         if (!cancelled) {
-          setProfileComplete(!!response.data.shop.profileComplete)
+          // If shop exists (regardless of profileComplete status), allow access
+          setHasShop(!!response.data.shop)
         }
       } catch {
         if (!cancelled) {
-          setProfileComplete(false)
+          setHasShop(false)
         }
       } finally {
         if (!cancelled) {
@@ -52,11 +53,11 @@ export default function ShopOwnerRegistrationGuard({ children }) {
 
   const onRegisterPage = location.pathname === SHOP_REGISTER_PATH
 
-  if (!profileComplete && !onRegisterPage) {
+  if (!hasShop && !onRegisterPage) {
     return <Navigate to={SHOP_REGISTER_PATH} replace />
   }
 
-  if (profileComplete && onRegisterPage) {
+  if (hasShop && onRegisterPage) {
     return <Navigate to="/dashboard/shop-owner" replace />
   }
 

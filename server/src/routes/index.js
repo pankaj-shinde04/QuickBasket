@@ -8,7 +8,6 @@ import settingsRoutes from './settingsRoutes.js'
 import publicRoutes from './publicRoutes.js'
 import orderRoutes from './orderRoutes.js'
 import paymentRoutes from './paymentRoutes.js'
-import adminOrderRoutes from './adminOrderRoutes.js'
 
 const router = Router()
 
@@ -29,6 +28,5 @@ router.use('/settings', settingsRoutes)
 router.use('/public', publicRoutes)
 router.use('/orders', orderRoutes)
 router.use('/payments', paymentRoutes)
-router.use('/admin/orders', adminOrderRoutes)
 
 export default router

@@ -1,5 +1,6 @@
 import Order from '../models/Order.js'
 import Payment from '../models/Payment.js'
+import User from '../models/User.js'
 
 // Place a new order
 export async function placeOrder(customerId, body) {
@@ -68,29 +69,38 @@ export async function cancelOrder(customerId, displayId) {
   return order
 }
 
-// Get all orders (for admin/shop-owner)
+// Shop Owner: Get all orders (newest first) with customer details
 export async function getAllOrders() {
-  return Order.find().sort({ createdAt: -1 }).populate('customer', 'firstName lastName email').lean()
+  return Order.find()
+    .populate('customer', 'name email phone')
+    .populate('payment')
+    .sort({ createdAt: -1 })
+    .lean()
 }
 
-// Get single order by ID (for admin/shop-owner)
-export async function getOrderById(orderId) {
-  const order = await Order.findById(orderId).populate('customer', 'firstName lastName email').lean()
-  if (!order) throw new Error('Order not found.')
+// Shop Owner: Get order by displayId
+export async function getOrderByDisplayIdForShopOwner(displayId) {
+  const order = await Order.findOne({ displayId })
+    .populate('customer', 'name email phone')
+    .populate('payment')
+    .lean()
   return order
 }
 
-// Update order status (for admin/shop-owner)
-export async function updateOrderStatus(orderId, status) {
-  const order = await Order.findById(orderId)
+// Shop Owner: Update order status
+export async function updateOrderStatus(displayId, status) {
+  const order = await Order.findOne({ displayId })
   if (!order) throw new Error('Order not found.')
-  
-  const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
-  if (!validStatuses.includes(status)) {
-    throw new Error('Invalid status.')
-  }
-  
   order.status = status
   await order.save()
   return order
+}
+
+// Shop Owner: Get orders by status
+export async function getOrdersByStatus(status) {
+  return Order.find({ status })
+    .populate('customer', 'name email phone')
+    .populate('payment')
+    .sort({ createdAt: -1 })
+    .lean()
 }
