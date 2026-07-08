@@ -3,17 +3,29 @@ import ProductCard from '../ProductCard'
 import SectionHeading from '../SectionHeading'
 import { apiRequest } from '../../services/api'
 
+function ProductSkeleton() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-neutral-border bg-white p-4">
+      <div className="mb-3 h-40 rounded-xl bg-neutral" />
+      <div className="mb-2 h-4 w-3/4 rounded bg-neutral" />
+      <div className="h-4 w-1/2 rounded bg-neutral" />
+    </div>
+  )
+}
+
 export default function FeaturedProducts() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await apiRequest('/public/products?limit=10')
-        setProducts(res.data.products || [])
+        const res = await apiRequest('/public/products/featured?limit=10', { method: 'GET' })
+        setProducts(res.data?.products || [])
       } catch (err) {
-        console.error('Failed to fetch products:', err)
+        console.error('Failed to fetch featured products:', err)
+        setError('Failed to load featured products.')
       } finally {
         setLoading(false)
       }
@@ -25,9 +37,15 @@ export default function FeaturedProducts() {
     return (
       <section>
         <SectionHeading title="Featured Products" />
-        <div className="text-center py-8 text-sm text-text-muted">Loading products...</div>
+        <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 5 }, (_, i) => <ProductSkeleton key={i} />)}
+        </div>
       </section>
     )
+  }
+
+  if (error || products.length === 0) {
+    return null
   }
 
   return (

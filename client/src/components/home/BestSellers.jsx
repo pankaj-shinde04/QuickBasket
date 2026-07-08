@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { HiOutlineHeart, HiOutlineShoppingBag, HiOutlinePlus } from 'react-icons/hi2'
 import { FaStar } from 'react-icons/fa'
 import AddToCartButton from '../AddToCartButton'
 import { apiRequest } from '../../services/api'
 
-function StarRating({ rating }) {
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StarRating({ rating = 4 }) {
   return (
     <div className="flex items-center gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
         <FaStar
           key={i}
-          className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${
-            i < rating ? 'text-secondary' : 'text-gray-200'
-          }`}
+          className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${i < rating ? 'text-secondary' : 'text-gray-200'}`}
         />
       ))}
       <span className="ml-1 text-xs text-text-muted">({rating})</span>
@@ -28,7 +28,6 @@ function Countdown({ countdown }) {
     { label: 'm', value: countdown.minutes },
     { label: 's', value: countdown.seconds },
   ]
-
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-border pt-3">
       <div className="flex gap-1">
@@ -41,20 +40,27 @@ function Countdown({ countdown }) {
           </span>
         ))}
       </div>
-      <span className="text-[10px] text-text-muted sm:text-xs">
-        Remains until the end of the offer
-      </span>
+      <span className="text-[10px] text-text-muted sm:text-xs">Remains until end of offer</span>
     </div>
   )
 }
 
-function SideProductCard({ product, showDivider }) {
+function SideProductCard({ product, showDivider, countdown }) {
+  const discountPct =
+    product.discountPrice
+      ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+      : 0
+  const displayPrice = `₹${product.discountPrice ?? product.price}`
+  const originalPrice = product.discountPrice ? `₹${product.price}` : null
+
   return (
     <div className={showDivider ? 'border-b border-neutral-border pb-5' : ''}>
       <div className="relative flex gap-3 sm:gap-4">
-        <span className="absolute -left-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white sm:h-10 sm:w-10 sm:text-xs">
-          {product.discount}%
-        </span>
+        {discountPct > 0 && (
+          <span className="absolute -left-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white sm:h-10 sm:w-10 sm:text-xs">
+            {discountPct}%
+          </span>
+        )}
         <button
           type="button"
           className="absolute right-0 top-0 z-10 text-text-muted hover:text-red-500"
@@ -63,26 +69,29 @@ function SideProductCard({ product, showDivider }) {
           <HiOutlineHeart className="h-4 w-4" />
         </button>
 
-        <div className="flex w-24 shrink-0 items-center justify-center sm:w-28" data-product-image>
+        <div className="flex w-24 shrink-0 items-center justify-center sm:w-28">
           <img
-            src={product.image}
+            src={product.image || 'https://placehold.co/200x200?text=Product'}
             alt={product.name}
             className="h-20 w-full object-contain sm:h-24"
+            onError={(e) => { e.target.src = 'https://placehold.co/200x200?text=Product' }}
           />
         </div>
 
         <div className="min-w-0 flex-1 pr-5">
-          <h3 className="text-sm font-bold leading-snug text-text-dark sm:text-base">
+          <h3 className="text-sm font-bold leading-snug text-text-dark sm:text-base line-clamp-2">
             {product.name}
           </h3>
           <div className="mt-1">
-            <StarRating rating={product.rating} />
+            <StarRating rating={4} />
           </div>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-base font-bold text-red-500 sm:text-lg">{product.price}</span>
-            <span className="text-xs text-text-muted line-through sm:text-sm">
-              {product.originalPrice}
-            </span>
+            <span className="text-base font-bold text-red-500 sm:text-lg">{displayPrice}</span>
+            {originalPrice && (
+              <span className="text-xs text-text-muted line-through sm:text-sm">
+                {originalPrice}
+              </span>
+            )}
           </div>
           <AddToCartButton
             image={product.image}
@@ -93,18 +102,17 @@ function SideProductCard({ product, showDivider }) {
           </AddToCartButton>
         </div>
       </div>
-      <Countdown countdown={product.countdown} />
+      <Countdown countdown={countdown} />
     </div>
   )
 }
 
 function FeaturedCard({ product }) {
+  const stockPct = product.stock > 0 ? Math.min(Math.round((product.stock / 50) * 100), 100) : 0
+
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-primary bg-white shadow-sm">
-      <Link
-        to={`/product/${product.id}`}
-        className="block transition-shadow hover:shadow-md"
-      >
+      <Link to={`/product/${product.id}`} className="block transition-shadow hover:shadow-md">
         <div className="relative bg-neutral px-6 pb-2 pt-6 sm:px-8 sm:pt-8">
           <button
             type="button"
@@ -114,35 +122,38 @@ function FeaturedCard({ product }) {
           >
             <HiOutlineHeart className="h-5 w-5" />
           </button>
-          <div data-product-image>
-            <img
-              src={product.image}
-              alt={product.name}
-              className="mx-auto h-44 w-full object-contain sm:h-52 lg:h-56"
-            />
-          </div>
+          <img
+            src={product.image || 'https://placehold.co/400x400?text=Product'}
+            alt={product.name}
+            className="mx-auto h-44 w-full object-contain sm:h-52 lg:h-56"
+            onError={(e) => { e.target.src = 'https://placehold.co/400x400?text=Product' }}
+          />
         </div>
 
         <div className="px-5 pt-4 sm:px-8">
-          <StarRating rating={product.rating} />
-          <h3 className="mt-2 text-base font-bold leading-snug text-text-dark sm:text-lg">
+          <StarRating rating={4} />
+          <h3 className="mt-2 text-base font-bold leading-snug text-text-dark sm:text-lg line-clamp-2">
             {product.name}
           </h3>
-          <p className="mt-2 text-xl font-extrabold text-text-dark sm:text-2xl">{product.price}</p>
-          <p className="mt-3 text-xs leading-relaxed text-text-muted sm:text-sm">
-            {product.description}
+          <p className="mt-2 text-xl font-extrabold text-text-dark sm:text-2xl">
+            ₹{product.discountPrice ?? product.price}
+          </p>
+          <p className="mt-3 text-xs leading-relaxed text-text-muted sm:text-sm line-clamp-2">
+            {product.description || 'Premium quality product.'}
           </p>
 
           <div className="mt-5">
-            <p className="text-xs text-text-muted">This product is about to run out</p>
+            <p className="text-xs text-text-muted">
+              {product.stock <= 10 ? 'Running low – order soon!' : 'Available in stock'}
+            </p>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500"
-                style={{ width: `${product.stockPercent}%` }}
+                style={{ width: `${stockPct}%` }}
               />
             </div>
             <p className="mt-1.5 text-sm font-bold text-text-dark">
-              available only: {product.stockLeft}
+              {product.stock > 0 ? `Available: ${product.stock} items` : 'Out of stock'}
             </p>
           </div>
         </div>
@@ -161,22 +172,58 @@ function FeaturedCard({ product }) {
   )
 }
 
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse overflow-hidden rounded-2xl border border-neutral-border bg-white">
+      <div className="h-52 bg-neutral" />
+      <div className="p-5 space-y-3">
+        <div className="h-4 w-3/4 rounded bg-neutral" />
+        <div className="h-4 w-1/2 rounded bg-neutral" />
+        <div className="h-8 rounded bg-neutral" />
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function BestSellers() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Live countdown timer
+  const [countdown, setCountdown] = useState({ days: 2, hours: 12, minutes: 30, seconds: 0 })
+  const timerRef = useRef(null)
+
   useEffect(() => {
+    // Fetch from dedicated best-sellers endpoint
     const fetchProducts = async () => {
       try {
-        const res = await apiRequest('/public/products?limit=6')
-        setProducts(res.data.products || [])
+        const res = await apiRequest('/public/products/best-sellers?limit=6', { method: 'GET' })
+        setProducts(res.data?.products || [])
       } catch (err) {
-        console.error('Failed to fetch products:', err)
+        console.error('Failed to fetch best sellers:', err)
       } finally {
         setLoading(false)
       }
     }
     fetchProducts()
+  }, [])
+
+  // Countdown timer (counts down from initial state)
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        let { days, hours, minutes, seconds } = prev
+        seconds--
+        if (seconds < 0) { seconds = 59; minutes-- }
+        if (minutes < 0) { minutes = 59; hours-- }
+        if (hours < 0) { hours = 23; days-- }
+        if (days < 0) return { days: 2, hours: 12, minutes: 30, seconds: 0 } // reset
+        return { days, hours, minutes, seconds }
+      })
+    }, 1000)
+    return () => clearInterval(timerRef.current)
   }, [])
 
   const leftProducts = products.slice(0, 3)
@@ -191,14 +238,20 @@ export default function BestSellers() {
             Don&apos;t miss this opportunity at a special discount just for this week.
           </p>
         </div>
-        <div className="text-center py-8 text-sm text-text-muted">Loading products...</div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(280px,360px)_1fr] lg:gap-5 xl:gap-8">
+          <div className="hidden space-y-5 lg:block">
+            {Array.from({ length: 3 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-neutral" />)}
+          </div>
+          <SkeletonCard />
+          <div className="hidden space-y-5 lg:block">
+            {Array.from({ length: 3 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-neutral" />)}
+          </div>
+        </div>
       </section>
     )
   }
 
-  if (products.length === 0) {
-    return null
-  }
+  if (products.length === 0) return null
 
   return (
     <section>
@@ -210,69 +263,43 @@ export default function BestSellers() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(280px,360px)_1fr] lg:gap-5 xl:gap-8">
-        {/* Left column */}
+        {/* Left column – desktop only */}
         <div className="hidden space-y-5 lg:block">
           {leftProducts.map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={{
-                ...product,
-                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
-                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
-                price: `₹${product.discountPrice || product.price}`,
-                rating: 4.5,
-                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
-              }}
+              product={product}
+              countdown={countdown}
               showDivider={i < leftProducts.length - 1}
             />
           ))}
         </div>
 
-        {/* Center featured */}
+        {/* Center featured card */}
         <div className="lg:row-span-1">
-          {products[0] && (
-            <FeaturedCard product={{
-              ...products[0],
-              rating: 4.5,
-              stockPercent: 75,
-              stockLeft: '15 items',
-              description: products[0].description || 'Premium quality product with excellent reviews.',
-            }} />
-          )}
+          {products[0] && <FeaturedCard product={products[0]} />}
         </div>
 
-        {/* Right column */}
+        {/* Right column – desktop only */}
         <div className="hidden space-y-5 lg:block">
           {rightProducts.map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={{
-                ...product,
-                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
-                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
-                price: `₹${product.discountPrice || product.price}`,
-                rating: 4.5,
-                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
-              }}
+              product={product}
+              countdown={countdown}
               showDivider={i < rightProducts.length - 1}
             />
           ))}
         </div>
 
-        {/* Mobile & tablet: stacked side cards below featured */}
+        {/* Mobile / tablet – stacked below featured */}
         <div className="space-y-5 lg:hidden">
-          {products.map((product, i) => (
+          {products.slice(1).map((product, i) => (
             <SideProductCard
               key={product.id}
-              product={{
-                ...product,
-                discount: product.discountPrice ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0,
-                originalPrice: product.discountPrice ? `₹${product.price}` : `₹${product.price}`,
-                price: `₹${product.discountPrice || product.price}`,
-                rating: 4.5,
-                countdown: { days: 2, hours: 12, minutes: 30, seconds: 45 },
-              }}
-              showDivider={i < products.length - 1}
+              product={product}
+              countdown={countdown}
+              showDivider={i < products.length - 2}
             />
           ))}
         </div>

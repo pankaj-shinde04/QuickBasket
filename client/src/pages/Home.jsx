@@ -4,6 +4,7 @@ import FeaturedProducts from '../components/home/FeaturedProducts'
 import PromoBanners from '../components/home/PromoBanners'
 import BestSellers from '../components/home/BestSellers'
 import TrendingProducts from '../components/home/TrendingProducts'
+import TopSellers from '../components/home/TopSellers'
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <PromoBanners />
       <BestSellers />
       <TrendingProducts />
+      <TopSellers />
     </div>
   )
 }

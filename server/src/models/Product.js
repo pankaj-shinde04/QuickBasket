@@ -76,6 +76,22 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    salesCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 )

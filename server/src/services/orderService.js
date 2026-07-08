@@ -1,6 +1,7 @@
 import Order from '../models/Order.js'
 import Payment from '../models/Payment.js'
 import User from '../models/User.js'
+import Product from '../models/Product.js'
 
 // Place a new order
 export async function placeOrder(customerId, body) {
@@ -37,14 +38,30 @@ export async function placeOrder(customerId, body) {
   }
 
   const order = await Order.create(orderData)
-  
+
   // Populate payment if exists
   if (order.payment) {
     await order.populate('payment')
   }
-  
+
+  // Increment salesCount for each ordered product (fire-and-forget)
+  const bulkOps = items
+    .filter((item) => item.productId && /^[0-9a-fA-F]{24}$/.test(item.productId))
+    .map((item) => ({
+      updateOne: {
+        filter: { _id: item.productId },
+        update: { $inc: { salesCount: item.qty || 1 } },
+      },
+    }))
+  if (bulkOps.length > 0) {
+    Product.bulkWrite(bulkOps).catch((err) =>
+      console.error('Failed to update salesCount:', err)
+    )
+  }
+
   return order
 }
+
 
 // Get all orders for a customer (newest first)
 export async function getCustomerOrders(customerId) {
