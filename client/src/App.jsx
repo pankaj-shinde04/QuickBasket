@@ -22,6 +22,7 @@ import ShopOwnerEditProduct from './pages/shop-owner/EditProduct'
 import ShopOwnerOrders from './pages/shop-owner/Orders'
 import ShopOwnerOrderDetails from './pages/shop-owner/OrderDetails'
 import ShopOwnerPlaceholder from './pages/shop-owner/Placeholder'
+import ShopOwnerAnalytics from './pages/shop-owner/Analytics'
 import RegisterShop from './pages/shop-owner/RegisterShop'
 import ShopOwnerSettings from './pages/shop-owner/Settings'
 import ShopOwnerRegistrationGuard from './components/shop-owner/ShopOwnerRegistrationGuard'
@@ -95,10 +96,7 @@ export default function App() {
         <Route path="inventory/edit/:id" element={<ShopOwnerEditProduct />} />
         <Route path="orders" element={<ShopOwnerOrders />} />
         <Route path="orders/:orderId" element={<ShopOwnerOrderDetails />} />
-        <Route
-          path="reports"
-          element={<ShopOwnerPlaceholder title="Reports" />}
-        />
+        <Route path="reports" element={<ShopOwnerAnalytics />} />
         <Route path="settings" element={<ShopOwnerSettings />} />
       </Route>
 

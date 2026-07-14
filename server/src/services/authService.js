@@ -1,12 +1,13 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import User, { USER_STATUS } from '../models/User.js'
 import Shop, { SHOP_STATUS } from '../models/Shop.js'
 import config from '../config/index.js'
 import ApiError from '../utils/ApiError.js'
 import { formatPublicUser } from '../utils/userFormatter.js'
 import { ROLES, SIGNUP_ROLES } from '../constants/roles.js'
-import { sendShopOwnerPendingEmail } from './emailService.js'
+import { sendShopOwnerPendingEmail, sendPasswordResetEmail } from './emailService.js'
 
 function createToken(userId) {
   return jwt.sign({ id: userId }, config.jwt.secret, {
@@ -140,4 +141,50 @@ export async function getUserById(userId) {
   }
 
   return formatPublicUser(user)
+}
+
+// Forgot password — generate a token, email a reset link
+export async function forgotPassword(email) {
+  const user = await User.findOne({ email: email.trim().toLowerCase() })
+
+  // Always return success to avoid leaking whether email exists
+  if (!user) return
+
+  // Generate a secure random token (plain) and store its SHA-256 hash in DB
+  const plainToken = crypto.randomBytes(32).toString('hex')
+  const hashedToken = crypto.createHash('sha256').update(plainToken).digest('hex')
+
+  user.resetPasswordToken = hashedToken
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+  await user.save()
+
+  const resetUrl = `${config.clientUrl}/auth/reset-password?token=${plainToken}`
+  void sendPasswordResetEmail(user, resetUrl)
+}
+
+// Reset password — validate token, update password
+export async function resetPassword(plainToken, newPassword) {
+  const hashedToken = crypto.createHash('sha256').update(plainToken).digest('hex')
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: new Date() },
+  }).select('+password +resetPasswordToken +resetPasswordExpires')
+
+  if (!user) {
+    throw new ApiError(400, 'Reset link is invalid or has expired. Please request a new one.')
+  }
+
+  if (newPassword.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters.')
+  }
+
+  user.password = await bcrypt.hash(newPassword, 12)
+  user.resetPasswordToken = undefined
+  user.resetPasswordExpires = undefined
+  await user.save()
+
+  // Return a fresh JWT so user is immediately logged in after reset
+  const token = createToken(user._id)
+  return { user: formatPublicUser(user), token }
 }

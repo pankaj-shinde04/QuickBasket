@@ -1,6 +1,8 @@
 import express from 'express'
 import { authenticate, authorize } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
+import Order from '../models/Order.js'
+import Product from '../models/Product.js'
 import {
   placeOrder,
   getCustomerOrders,
@@ -16,9 +18,13 @@ import { ROLES } from '../constants/roles.js'
 
 const router = express.Router()
 
-// ─── Customer Routes (/api/orders) ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// IMPORTANT: All named/static routes MUST be registered before wildcard routes
+// like /:displayId — otherwise Express matches the wildcard first and the named
+// routes become unreachable.
+// ─────────────────────────────────────────────────────────────────────────────
 
-// POST /api/orders — place a new order
+// ─── Customer: POST /api/orders ───────────────────────────────────────────────
 router.post(
   '/',
   authenticate,
@@ -26,13 +32,12 @@ router.post(
   placeOrderValidation,
   validateOrder,
   asyncHandler(async (req, res) => {
-    console.log('Order request body:', JSON.stringify(req.body, null, 2))
     const order = await placeOrder(req.user._id, req.body)
     res.status(201).json({ success: true, data: { order } })
   }),
 )
 
-// GET /api/orders — get all orders for logged-in customer
+// ─── Customer: GET /api/orders ────────────────────────────────────────────────
 router.get(
   '/',
   authenticate,
@@ -43,33 +48,162 @@ router.get(
   }),
 )
 
-// GET /api/orders/:displayId — get single order (customer)
-// NOTE: must be AFTER all /shop-owner/* routes to avoid param collision
+// ─── Shop Owner: GET /api/orders/shop-owner/analytics ─────────────────────────
+// !! Must be BEFORE /:displayId wildcard !!
 router.get(
-  '/:displayId',
+  '/shop-owner/analytics',
   authenticate,
-  authorize(ROLES.CUSTOMER),
+  authorize(ROLES.SHOP_OWNER),
   asyncHandler(async (req, res) => {
-    const order = await getOrderByDisplayId(req.user._id, req.params.displayId)
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' })
-    res.json({ success: true, data: { order } })
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+    const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
+
+    const [
+      allOrders,
+      todayOrders,
+      thisMonthOrders,
+      lastMonthOrders,
+      statusBreakdown,
+      dailyRevenue,
+      topProducts,
+      inventoryAlerts,
+    ] = await Promise.all([
+      Order.aggregate([
+        { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: startOfToday }, status: { $ne: 'Cancelled' } } },
+        { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: startOfThisMonth }, status: { $ne: 'Cancelled' } } },
+        { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+            status: { $ne: 'Cancelled' },
+          },
+        },
+        { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, status: { $ne: 'Cancelled' } } },
+        {
+          $group: {
+            _id: {
+              y: { $year: '$createdAt' },
+              m: { $month: '$createdAt' },
+              d: { $dayOfMonth: '$createdAt' },
+            },
+            revenue: { $sum: '$total' },
+            orders: { $sum: 1 },
+          },
+        },
+        { $sort: { '_id.y': 1, '_id.m': 1, '_id.d': 1 } },
+      ]),
+      Order.aggregate([
+        { $match: { status: { $ne: 'Cancelled' } } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.productId',
+            name: { $first: '$items.name' },
+            image: { $first: '$items.image' },
+            category: { $first: '$items.category' },
+            totalQty: { $sum: '$items.qty' },
+            totalRevenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
+          },
+        },
+        { $sort: { totalQty: -1 } },
+        { $limit: 5 },
+      ]),
+      Product.find({
+        $or: [{ stock: 0 }, { $expr: { $lte: ['$stock', '$lowStockThreshold'] } }],
+        isActive: true,
+      })
+        .select('name stock lowStockThreshold image category')
+        .limit(10)
+        .lean(),
+    ])
+
+    const totalRevenue = allOrders[0]?.revenue || 0
+    const totalOrders = allOrders[0]?.count || 0
+    const todayRevenue = todayOrders[0]?.revenue || 0
+    const todayOrderCount = todayOrders[0]?.count || 0
+    const monthRevenue = thisMonthOrders[0]?.revenue || 0
+    const monthOrders = thisMonthOrders[0]?.count || 0
+    const lastMonthRevenue = lastMonthOrders[0]?.revenue || 0
+    const lastMonthOrderCount = lastMonthOrders[0]?.count || 0
+
+    const revenueGrowth =
+      lastMonthRevenue > 0
+        ? (((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1)
+        : null
+    const ordersGrowth =
+      lastMonthOrderCount > 0
+        ? (((monthOrders - lastMonthOrderCount) / lastMonthOrderCount) * 100).toFixed(1)
+        : null
+
+    const statusMap = {}
+    statusBreakdown.forEach((s) => { statusMap[s._id] = s.count })
+
+    const dailyMap = {}
+    dailyRevenue.forEach((d) => {
+      const key = `${d._id.y}-${String(d._id.m).padStart(2, '0')}-${String(d._id.d).padStart(2, '0')}`
+      dailyMap[key] = { revenue: d.revenue, orders: d.orders }
+    })
+
+    const dailyChart = []
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * 24 * 60 * 60 * 1000)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      dailyChart.push({
+        date: key,
+        label: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        revenue: dailyMap[key]?.revenue || 0,
+        orders: dailyMap[key]?.orders || 0,
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        kpis: {
+          totalRevenue,
+          totalOrders,
+          todayRevenue,
+          todayOrderCount,
+          monthRevenue,
+          monthOrders,
+          revenueGrowth,
+          ordersGrowth,
+          avgOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : '0.00',
+        },
+        statusBreakdown: statusMap,
+        dailyChart,
+        topProducts,
+        inventoryAlerts: inventoryAlerts.map((p) => ({
+          id: p._id.toString(),
+          name: p.name,
+          stock: p.stock,
+          lowStockThreshold: p.lowStockThreshold,
+          image: p.image,
+          category: p.category,
+          alertType: p.stock === 0 ? 'Out of Stock' : 'Low Stock',
+        })),
+      },
+    })
   }),
 )
 
-// PATCH /api/orders/:displayId/cancel — cancel an order
-router.patch(
-  '/:displayId/cancel',
-  authenticate,
-  authorize(ROLES.CUSTOMER),
-  asyncHandler(async (req, res) => {
-    const order = await cancelOrder(req.user._id, req.params.displayId)
-    res.json({ success: true, data: { order } })
-  }),
-)
-
-// ─── Shop Owner Routes (/api/orders/shop-owner/*) ─────────────────────────────
-
-// GET /api/orders/shop-owner/all — get all orders for shop owner
+// ─── Shop Owner: GET /api/orders/shop-owner/all ───────────────────────────────
 router.get(
   '/shop-owner/all',
   authenticate,
@@ -80,7 +214,7 @@ router.get(
   }),
 )
 
-// GET /api/orders/shop-owner/status/:status — get orders by status
+// ─── Shop Owner: GET /api/orders/shop-owner/status/:status ────────────────────
 router.get(
   '/shop-owner/status/:status',
   authenticate,
@@ -91,7 +225,7 @@ router.get(
   }),
 )
 
-// GET /api/orders/shop-owner/:displayId — get single order for shop owner
+// ─── Shop Owner: GET /api/orders/shop-owner/:displayId ────────────────────────
 router.get(
   '/shop-owner/:displayId',
   authenticate,
@@ -103,7 +237,7 @@ router.get(
   }),
 )
 
-// PATCH /api/orders/shop-owner/:displayId/status — update order status
+// ─── Shop Owner: PATCH /api/orders/shop-owner/:displayId/status ───────────────
 router.patch(
   '/shop-owner/:displayId/status',
   authenticate,
@@ -112,6 +246,30 @@ router.patch(
     const { status } = req.body
     if (!status) return res.status(400).json({ success: false, message: 'Status is required.' })
     const order = await updateOrderStatus(req.params.displayId, status)
+    res.json({ success: true, data: { order } })
+  }),
+)
+
+// ─── Customer: GET /api/orders/:displayId ─────────────────────────────────────
+// !! MUST be last — wildcard /:displayId matches anything !!
+router.get(
+  '/:displayId',
+  authenticate,
+  authorize(ROLES.CUSTOMER),
+  asyncHandler(async (req, res) => {
+    const order = await getOrderByDisplayId(req.user._id, req.params.displayId)
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' })
+    res.json({ success: true, data: { order } })
+  }),
+)
+
+// ─── Customer: PATCH /api/orders/:displayId/cancel ────────────────────────────
+router.patch(
+  '/:displayId/cancel',
+  authenticate,
+  authorize(ROLES.CUSTOMER),
+  asyncHandler(async (req, res) => {
+    const order = await cancelOrder(req.user._id, req.params.displayId)
     res.json({ success: true, data: { order } })
   }),
 )

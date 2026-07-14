@@ -44,3 +44,31 @@ export function logout(_req, res) {
     message: 'Logged out successfully.',
   })
 }
+
+// POST /api/auth/forgot-password
+export async function forgotPassword(req, res) {
+  const { email } = req.body
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required.' })
+  }
+  // Always returns success — never reveals whether the email exists (anti-enumeration)
+  await authService.forgotPassword(email)
+  res.json({
+    success: true,
+    message: 'If an account with that email exists, a reset link has been sent.',
+  })
+}
+
+// POST /api/auth/reset-password
+export async function resetPassword(req, res) {
+  const { token, password } = req.body
+  if (!token || !password) {
+    return res.status(400).json({ success: false, message: 'Token and new password are required.' })
+  }
+  const result = await authService.resetPassword(token, password)
+  res.json({
+    success: true,
+    message: 'Password reset successfully. You are now logged in.',
+    data: result,
+  })
+}

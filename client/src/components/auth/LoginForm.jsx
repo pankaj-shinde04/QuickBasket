@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { getPostAuthPath, ROLES } from '../../constants/roles'
 
-export default function LoginForm() {
+export default function LoginForm({ onForgotPassword }) {
   const navigate = useNavigate()
   const { login, getShopOwnerRedirect } = useAuth()
   const [email, setEmail] = useState('')
@@ -66,9 +66,13 @@ export default function LoginForm() {
           <label htmlFor="login-password" className="text-sm font-medium text-text-muted">
             Password
           </label>
-          <Link to="#" className="text-sm font-medium text-primary hover:text-primary-dark">
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm font-medium text-primary hover:text-primary-dark"
+          >
             Forgot password?
-          </Link>
+          </button>
         </div>
         <div className="relative">
           <HiOutlineLockClosed className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />

@@ -96,3 +96,38 @@ export function sendShopOwnerRejectedEmail(user, shopName) {
     `,
   })
 }
+
+export function sendPasswordResetEmail(user, resetUrl) {
+  const name = `${user.firstName} ${user.lastName}`
+
+  return sendEmailSafe({
+    to: user.email,
+    subject: 'QuickBasket — Reset your password',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
+        <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); padding: 32px 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-style: italic;">QuickBasket</h1>
+        </div>
+        <div style="background: #ffffff; padding: 32px 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+          <h2 style="margin-top: 0; font-size: 20px;">Reset Your Password</h2>
+          <p>Hello <strong>${name}</strong>,</p>
+          <p>We received a request to reset the password for your QuickBasket account. Click the button below to choose a new password.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetUrl}"
+               style="background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; font-size: 15px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 13px;">This link expires in <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email — your password will not change.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            If the button doesn't work, copy and paste this link into your browser:<br/>
+            <a href="${resetUrl}" style="color: #4f46e5; word-break: break-all;">${resetUrl}</a>
+          </p>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">— QuickBasket Team</p>
+        </div>
+      </div>
+    `,
+  })
+}
+
