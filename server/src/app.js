@@ -16,16 +16,24 @@ const __dirname = path.dirname(__filename)
 const app = express()
 
 app.use(helmet())
+
+// Build allowed origins list from CLIENT_URL + optional regex pattern
+const allowedOrigins = config.clientUrl // already an array from config
+const originPattern = process.env.CORS_PATTERN
+  ? new RegExp(process.env.CORS_PATTERN)
+  : null
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman)
+      // Allow non-browser requests (Postman, mobile, server-to-server)
       if (!origin) return callback(null, true)
-      if (config.clientUrl.includes(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error(`CORS: Origin '${origin}' not allowed`))
-      }
+      // Check exact match
+      if (allowedOrigins.includes(origin)) return callback(null, true)
+      // Check regex pattern (e.g. all Vercel preview URLs)
+      if (originPattern && originPattern.test(origin)) return callback(null, true)
+      // Reject — return false, NOT an Error, so Express still sends CORS headers
+      return callback(null, false)
     },
     credentials: true,
   })
