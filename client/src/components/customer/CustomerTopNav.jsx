@@ -1,13 +1,11 @@
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
-  HiOutlineBell,
   HiOutlineBars3,
   HiOutlineXMark,
-  HiOutlineUserCircle,
 } from 'react-icons/hi2'
 import CartTarget from '../CartTarget'
-import { useAuth } from '../../context/AuthContext'
+
 
 const topNavLinks = [
   { to: '/', label: 'Shop' },
@@ -17,10 +15,8 @@ const topNavLinks = [
 
 export default function CustomerTopNav({ menuOpen, onMenuToggle }) {
   const location = useLocation()
-  const { user } = useAuth()
   const isOrdersActive = location.pathname.includes('/dashboard/customer/orders')
   const isShopActive = location.pathname === '/'
-  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()
 
   return (
     <>
@@ -98,35 +94,7 @@ export default function CustomerTopNav({ menuOpen, onMenuToggle }) {
               className="w-36 rounded-full border border-neutral-border bg-neutral py-2 pl-9 pr-3 text-sm outline-none focus:border-primary lg:w-48 xl:w-56"
             />
           </div>
-          <button
-            type="button"
-            className="relative hidden rounded-full p-2 text-text-muted hover:bg-neutral sm:block"
-            aria-label="Notifications"
-          >
-            <HiOutlineBell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-          </button>
           <CartTarget />
-          {/* Avatar / profile link */}
-          <Link
-            to="/dashboard/customer/settings"
-            className="hidden rounded-full p-1 text-text-muted hover:bg-neutral sm:block"
-            aria-label="Account"
-          >
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.firstName}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : initials ? (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
-                {initials}
-              </div>
-            ) : (
-              <HiOutlineUserCircle className="h-8 w-8" />
-            )}
-          </Link>
         </div>
       </div>
 

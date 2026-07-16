@@ -4,8 +4,6 @@ import {
   HiOutlineBars3,
   HiOutlineMagnifyingGlass,
   HiOutlineUser,
-  HiOutlineGift,
-  HiOutlinePhone,
   HiOutlineXMark,
 } from 'react-icons/hi2'
 import Logo from './Logo'
@@ -134,7 +132,7 @@ export default function Header() {
 
       {/* Sub navigation */}
       <div className="hidden border-b border-neutral-border bg-white lg:block">
-        <div className="page-container flex items-center justify-between gap-5 py-3">
+        <div className="page-container flex items-center py-3">
           <nav className="flex items-center gap-1">
             {navLinks.map((link, i) => (
               <Link
@@ -148,23 +146,6 @@ export default function Header() {
               </Link>
             ))}
           </nav>
-
-          <div className="flex items-center gap-5">
-            <Link
-              to="/shop"
-              className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark"
-            >
-              <HiOutlineGift className="h-6 w-6" />
-              Weekly Discount
-            </Link>
-            <div className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-white">
-              <HiOutlinePhone className="h-5 w-5" />
-              <div className="text-xs leading-tight">
-                <span className="block opacity-80">Online Number</span>
-                <span className="text-sm font-semibold">+1 (800) 123-4567</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

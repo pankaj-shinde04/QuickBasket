@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { HiOutlineHeart, HiOutlineShoppingBag, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineShoppingBag, HiOutlinePlus } from 'react-icons/hi2'
 import { FaStar } from 'react-icons/fa'
 import AddToCartButton from '../AddToCartButton'
 import { apiRequest } from '../../services/api'
@@ -61,13 +61,7 @@ function SideProductCard({ product, showDivider, countdown }) {
             {discountPct}%
           </span>
         )}
-        <button
-          type="button"
-          className="absolute right-0 top-0 z-10 text-text-muted hover:text-red-500"
-          aria-label="Add to wishlist"
-        >
-          <HiOutlineHeart className="h-4 w-4" />
-        </button>
+
 
         <div className="flex w-24 shrink-0 items-center justify-center sm:w-28">
           <img
@@ -94,6 +88,15 @@ function SideProductCard({ product, showDivider, countdown }) {
             )}
           </div>
           <AddToCartButton
+            product={{
+              id: product._id ?? product.id,
+              name: product.name,
+              price: Number(product.discountPrice ?? product.price),
+              image: product.image,
+              unit: product.unit,
+              stock: product.stock,
+              category: product.category,
+            }}
             image={product.image}
             className="mt-2 flex w-full max-w-[180px] items-center justify-between rounded-full border border-neutral-border px-3 py-1.5 text-xs font-semibold text-text-dark transition-colors hover:border-primary hover:text-primary sm:text-sm"
           >
@@ -114,14 +117,7 @@ function FeaturedCard({ product }) {
     <div className="overflow-hidden rounded-2xl border-2 border-primary bg-white shadow-sm">
       <Link to={`/product/${product.id}`} className="block transition-shadow hover:shadow-md">
         <div className="relative bg-neutral px-6 pb-2 pt-6 sm:px-8 sm:pt-8">
-          <button
-            type="button"
-            onClick={(e) => e.preventDefault()}
-            className="absolute right-4 top-4 text-text-muted hover:text-red-500 sm:right-6 sm:top-6"
-            aria-label="Add to wishlist"
-          >
-            <HiOutlineHeart className="h-5 w-5" />
-          </button>
+
           <img
             src={product.image || 'https://placehold.co/400x400?text=Product'}
             alt={product.name}
@@ -161,6 +157,15 @@ function FeaturedCard({ product }) {
 
       <div className="px-5 pb-6 sm:px-8 sm:pb-8">
         <AddToCartButton
+          product={{
+            id: product._id ?? product.id,
+            name: product.name,
+            price: Number(product.discountPrice ?? product.price),
+            image: product.image,
+            unit: product.unit,
+            stock: product.stock,
+            category: product.category,
+          }}
           image={product.image}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark sm:text-base"
         >

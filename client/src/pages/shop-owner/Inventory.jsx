@@ -2,9 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
-  HiOutlineBell,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineUserCircle,
   HiOutlineFunnel,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
@@ -47,13 +44,6 @@ export default function ShopOwnerInventory() {
               className="w-56 rounded-full border border-neutral-border bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-primary"
             />
           </div>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineBell className="h-5 w-5" />
-          </button>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineQuestionMarkCircle className="h-5 w-5" />
-          </button>
-          <HiOutlineUserCircle className="h-8 w-8 text-text-muted" />
         </div>
       </div>
 

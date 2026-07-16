@@ -2,18 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
-  HiOutlineBell,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineUserCircle,
   HiOutlineArrowLeft,
   HiOutlineCloudArrowUp,
   HiOutlineXCircle,
   HiOutlineArrowPath,
 } from 'react-icons/hi2'
-import { productCategories, unitTypes } from '../../data/shopOwnerData'
+import { unitTypes } from '../../data/shopOwnerData'
 import { getProductById, updateProduct, deleteProduct } from '../../services/productService'
-import { getAuthToken } from '../../services/api'
+import { getAuthToken, apiRequest } from '../../services/api'
 import { useProducts } from '../../context/ProductContext'
+import { useToast } from '../../context/ToastContext'
 
 const PLACEHOLDER =
   'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop'
@@ -22,6 +20,7 @@ export default function ShopOwnerEditProduct() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { refresh } = useProducts()
+  const { success, error: toastError } = useToast()
   const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({
@@ -45,6 +44,14 @@ export default function ShopOwnerEditProduct() {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const [categories, setCategories] = useState([])
+
+  // Fetch categories from API
+  useEffect(() => {
+    apiRequest('/public/categories')
+      .then((res) => setCategories((res.data.categories || []).map((c) => c.name)))
+      .catch(() => setCategories([]))
+  }, [])
 
   // Load product from API on mount
   useEffect(() => {
@@ -128,9 +135,11 @@ export default function ShopOwnerEditProduct() {
 
       await updateProduct(token, id, formData)
       await refresh()
+      success('Product updated successfully!', 'Saved')
       navigate('/dashboard/shop-owner/inventory')
     } catch (err) {
       setError(err.message || 'Failed to update product. Please try again.')
+      toastError(err.message || 'Failed to update product.', 'Save failed')
     } finally {
       setLoading(false)
     }
@@ -143,9 +152,11 @@ export default function ShopOwnerEditProduct() {
       const token = getAuthToken()
       await deleteProduct(token, id)
       await refresh()
+      success('Product deleted.', 'Deleted')
       navigate('/dashboard/shop-owner/inventory')
     } catch (err) {
       setError(err.message || 'Failed to delete product.')
+      toastError(err.message || 'Failed to delete product.', 'Delete failed')
       setDeleting(false)
     }
   }
@@ -191,13 +202,6 @@ export default function ShopOwnerEditProduct() {
               className="w-48 rounded-full border border-neutral-border bg-white py-2 pl-9 pr-4 text-sm outline-none"
             />
           </div>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineBell className="h-5 w-5" />
-          </button>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineQuestionMarkCircle className="h-5 w-5" />
-          </button>
-          <HiOutlineUserCircle className="h-8 w-8 text-text-muted" />
         </div>
       </div>
 
@@ -263,7 +267,7 @@ export default function ShopOwnerEditProduct() {
                       className="w-full rounded-lg border border-neutral-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                     >
                       <option value="">Select category</option>
-                      {productCategories.map((cat) => (
+                      {categories.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>

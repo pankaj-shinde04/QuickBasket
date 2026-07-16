@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, authorize } from '../middleware/auth.js'
 import { uploadProductImage, handleMulterError } from '../middleware/upload.js'
 import { validate } from '../middleware/validate.js'
 import {
@@ -15,11 +15,13 @@ import {
   validateProductId,
   validateListProducts,
 } from '../validators/productValidator.js'
+import { ROLES } from '../constants/roles.js'
 
 const router = Router()
 
-// All product routes require authentication
-router.use(authenticate)
+// All product routes require authentication AND shop-owner role
+router.use(authenticate, authorize(ROLES.SHOP_OWNER))
+
 
 // GET  /api/products          → list all products for the owner's shop
 router.get('/', validateListProducts, validate, getProducts)

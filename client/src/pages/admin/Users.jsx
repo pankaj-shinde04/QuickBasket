@@ -11,6 +11,7 @@ import { userFilters, userStatusStyles } from '../../data/adminData'
 import * as adminApi from '../../services/adminService'
 import { formatJoinDate, formatStatusLabel, getAvatarColor, USER_STATUS } from '../../utils/adminUser'
 import { ROLES } from '../../constants/roles'
+import { useToast } from '../../context/ToastContext'
 
 const TAB_STATUS_MAP = {
   'All Users': undefined,
@@ -19,6 +20,7 @@ const TAB_STATUS_MAP = {
 }
 
 export default function AdminUsers() {
+  const { success, error: toastError } = useToast()
   const [activeTab, setActiveTab] = useState('All Users')
   const [page, setPage] = useState(1)
   const [users, setUsers] = useState([])
@@ -77,8 +79,15 @@ export default function AdminUsers() {
     try {
       await adminApi.updateUserStatus(user.id, nextStatus)
       await Promise.all([loadUsers(), loadStats()])
+      success(
+        nextStatus === USER_STATUS.BANNED
+          ? `${user.firstName} ${user.lastName} has been banned.`
+          : `${user.firstName} ${user.lastName} has been activated.`,
+        'User updated'
+      )
     } catch (err) {
       setError(err.message)
+      toastError(err.message, 'Action failed')
     }
   }
 

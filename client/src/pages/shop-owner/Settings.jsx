@@ -10,6 +10,7 @@ import {
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
+import { useToast } from '../../context/ToastContext'
 
 // ─── Reusable field ───────────────────────────────────────────────────────────
 function Field({ label, children }) {
@@ -73,6 +74,7 @@ function Section({ icon: Icon, title, subtitle, children }) {
 export default function ShopOwnerSettings() {
   const { user } = useAuth()
   const { shop, updateShop, updateProfile, changePassword } = useShop()
+  const { success, error: toastError } = useToast()
 
   // ── Profile form ──────────────────────────────────────────────────
   const [profile, setProfile] = useState({ firstName: '', lastName: '' })
@@ -90,8 +92,10 @@ export default function ShopOwnerSettings() {
     try {
       await updateProfile(profile)
       setProfileStatus({ type: 'success', msg: 'Name updated successfully.' })
+      success('Profile updated successfully.', 'Saved')
     } catch (err) {
       setProfileStatus({ type: 'error', msg: err.message || 'Failed to update profile.' })
+      toastError(err.message || 'Failed to update profile.', 'Save failed')
     } finally {
       setProfileLoading(false)
     }
@@ -117,9 +121,11 @@ export default function ShopOwnerSettings() {
     try {
       await changePassword({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword })
       setPwStatus({ type: 'success', msg: 'Password changed successfully.' })
+      success('Password changed successfully.', 'Password updated')
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
       setPwStatus({ type: 'error', msg: err.message || 'Failed to change password.' })
+      toastError(err.message || 'Failed to change password.', 'Change failed')
     } finally {
       setPwLoading(false)
     }
@@ -170,10 +176,12 @@ export default function ShopOwnerSettings() {
       if (logoFile) formData.append('logo', logoFile)
       await updateShop(formData)
       setShopStatus({ type: 'success', msg: 'Shop settings saved successfully.' })
+      success('Shop settings saved.', 'Saved')
       setLogoFile(null)
       setLogoPreview(null)
     } catch (err) {
       setShopStatus({ type: 'error', msg: err.message || 'Failed to update shop settings.' })
+      toastError(err.message || 'Failed to update shop settings.', 'Save failed')
     } finally {
       setShopLoading(false)
     }

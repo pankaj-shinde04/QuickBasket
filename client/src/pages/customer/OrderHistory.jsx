@@ -10,6 +10,7 @@ import {
 import CustomerFooter from '../../components/customer/CustomerFooter'
 import { useAuth } from '../../context/AuthContext'
 import { apiRequest, getAuthToken } from '../../services/api'
+import { useToast } from '../../context/ToastContext'
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&h=80&fit=crop'
 
@@ -171,6 +172,7 @@ function OrderCard({ order, onCancel }) {
 
 export default function CustomerOrderHistory() {
   const { user } = useAuth()
+  const { success, error: toastError } = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -198,8 +200,9 @@ export default function CustomerOrderHistory() {
       const token = getAuthToken()
       await apiRequest(`/orders/${displayId}/cancel`, { method: 'PATCH', token })
       await fetchOrders()
+      success('Your order has been cancelled.', 'Order cancelled')
     } catch (err) {
-      alert(err.message || 'Could not cancel order.')
+      toastError(err.message || 'Could not cancel order.', 'Cancel failed')
     }
   }
 

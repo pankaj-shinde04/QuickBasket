@@ -8,11 +8,18 @@ import logger from '../utils/logger.js'
 
 dotenv.config()
 
+const { ADMIN_FIRST_NAME, ADMIN_LAST_NAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env
+
+if (!ADMIN_FIRST_NAME || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  console.error('[createAdmin] ERROR: ADMIN_FIRST_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be set in .env')
+  process.exit(1)
+}
+
 const admin = {
-  firstName: process.env.ADMIN_FIRST_NAME || 'Alex',
-  lastName: process.env.ADMIN_LAST_NAME || 'Admin',
-  email: process.env.ADMIN_EMAIL || 'admin@quickbasket.com',
-  password: process.env.ADMIN_PASSWORD || 'Test@1234',
+  firstName: ADMIN_FIRST_NAME,
+  lastName: ADMIN_LAST_NAME || '',
+  email: ADMIN_EMAIL,
+  password: ADMIN_PASSWORD,
 }
 
 async function createAdmin() {

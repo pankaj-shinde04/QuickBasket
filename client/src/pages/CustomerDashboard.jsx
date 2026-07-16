@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlinePlus,
   HiOutlineShoppingBag,
@@ -10,7 +10,9 @@ import {
 } from 'react-icons/hi2'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { useToast } from '../context/ToastContext'
 import { apiRequest } from '../services/api'
+import { ROLES } from '../constants/roles'
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&h=300&fit=crop'
 
@@ -110,8 +112,10 @@ function ProductCard({ product, onAdd }) {
 }
 
 export default function CustomerDashboard() {
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const { addToCart, cartCount } = useCart()
+  const { success, info } = useToast()
+  const navigate = useNavigate()
 
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([{ id: 'all', name: 'All', icon: '', color: '' }])
@@ -136,6 +140,16 @@ export default function CustomerDashboard() {
       .catch(() => setProducts([]))
       .finally(() => setLoading(false))
   }, [activeCategory, search])
+
+  const handleAdd = (product) => {
+    if (!isAuthenticated || user?.role !== ROLES.CUSTOMER) {
+      info('Please log in to add items to your cart.', 'Login required')
+      navigate('/auth')
+      return
+    }
+    addToCart(product)
+    success(`${product.name} added to cart!`)
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -249,7 +263,7 @@ export default function CustomerDashboard() {
         {!loading && products.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} onAdd={addToCart} />
+              <ProductCard key={product.id} product={product} onAdd={handleAdd} />
             ))}
           </div>
         )}

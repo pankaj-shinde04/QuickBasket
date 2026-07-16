@@ -7,11 +7,13 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getPostAuthPath, ROLES, SHOP_REGISTER_PATH } from '../../constants/roles'
 
 export default function SignUpForm({ role }) {
   const navigate = useNavigate()
   const { signup } = useAuth()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -35,11 +37,9 @@ export default function SignUpForm({ role }) {
           navigate(SHOP_REGISTER_PATH, { replace: true })
           return
         }
-
-        setSuccess(
-          session.message ||
-            'Your account is pending admin verification. Check your email for updates before logging in.',
-        )
+        const msg = session.message || 'Account pending verification. Check your email.'
+        setSuccess(msg)
+        toastSuccess(msg, 'Account created!')
         setFirstName('')
         setLastName('')
         setEmail('')
@@ -47,9 +47,11 @@ export default function SignUpForm({ role }) {
         return
       }
 
+      toastSuccess('Welcome to QuickBasket!', 'Account created')
       navigate(getPostAuthPath(session.role), { replace: true })
     } catch (err) {
       setError(err.message)
+      toastError(err.message, 'Sign up failed')
     } finally {
       setLoading(false)
     }

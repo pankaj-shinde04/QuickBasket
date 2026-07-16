@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { HiOutlineFunnel, HiOutlineXMark, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi2'
+import { useSearchParams } from 'react-router-dom'
+import { HiOutlineFunnel, HiOutlineXMark, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineMagnifyingGlass } from 'react-icons/hi2'
 import ProductCard from '../components/ProductCard'
 import { apiRequest } from '../services/api'
 import { getPublicCategories } from '../services/categoryService'
 
 export default function Shop() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [priceRange, setPriceRange] = useState('all')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -15,6 +17,14 @@ export default function Shop() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [totalProducts, setTotalProducts] = useState(0)
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+
+  // Sync search param from URL (set by Header search bar)
+  useEffect(() => {
+    const q = searchParams.get('search') || ''
+    setSearchQuery(q)
+    setCurrentPage(1)
+  }, [searchParams])
 
   const fetchCategories = async () => {
     try {
@@ -29,12 +39,8 @@ export default function Shop() {
     setLoading(true)
     setError(null)
     try {
-      const params = {
-        limit: 1000,
-      }
-      if (selectedCategory !== 'All') {
-        params.category = selectedCategory
-      }
+      const params = { limit: 1000 }
+      if (selectedCategory !== 'All') params.category = selectedCategory
       const queryString = new URLSearchParams(params).toString()
       const res = await apiRequest(`/public/products?${queryString}`, { method: 'GET' })
       setProducts(res.data.products || [])
@@ -51,19 +57,30 @@ export default function Shop() {
     fetchProducts()
   }, [selectedCategory])
 
-  const filteredProducts = products.filter((product) => {
-    let priceMatch = true
 
-    if (priceRange !== 'all') {
-      const price = product.price
-      if (priceRange === '0-10') priceMatch = price >= 0 && price <= 10
-      else if (priceRange === '10-20') priceMatch = price > 10 && price <= 20
-      else if (priceRange === '20-50') priceMatch = price > 20 && price <= 50
-      else if (priceRange === '50+') priceMatch = price > 50
+
+  const filteredProducts = products.filter((product) => {
+    // Search filter (from URL ?search= set by header search bar)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      const nameMatch     = product.name?.toLowerCase().includes(q)
+      const categoryMatch = product.category?.toLowerCase().includes(q)
+      const brandMatch    = product.brand?.toLowerCase().includes(q)
+      if (!nameMatch && !categoryMatch && !brandMatch) return false
     }
 
-    return priceMatch
+    // Price filter
+    if (priceRange !== 'all') {
+      const price = product.price
+      if (priceRange === '0-10'  && !(price >= 0   && price <= 10)) return false
+      if (priceRange === '10-20' && !(price > 10   && price <= 20)) return false
+      if (priceRange === '20-50' && !(price > 20   && price <= 50)) return false
+      if (priceRange === '50+'   && !(price > 50))                  return false
+    }
+
+    return true
   })
+
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -85,19 +102,33 @@ export default function Shop() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-text-dark sm:text-3xl">Shop</h1>
+            <h1 className="text-2xl font-bold text-text-dark sm:text-3xl">
+              {searchQuery.trim() ? `Results for "${searchQuery}"` : 'Shop'}
+            </h1>
             <p className="mt-1 text-sm text-text-muted">
               Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className="lg:hidden flex items-center gap-2 rounded-lg border border-neutral-border px-4 py-2 text-sm font-semibold text-text-dark hover:bg-neutral"
-          >
-            <HiOutlineFunnel className="h-4 w-4" />
-            Filters
-          </button>
+          <div className="flex items-center gap-2">
+            {searchQuery.trim() && (
+              <button
+                type="button"
+                onClick={() => { setSearchParams({}); setSearchQuery('') }}
+                className="flex items-center gap-1.5 rounded-full border border-neutral-border bg-white px-3 py-1.5 text-xs font-medium text-text-muted hover:border-red-300 hover:text-red-500"
+              >
+                <HiOutlineXMark className="h-3.5 w-3.5" />
+                Clear search
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="lg:hidden flex items-center gap-2 rounded-lg border border-neutral-border px-4 py-2 text-sm font-semibold text-text-dark hover:bg-neutral"
+            >
+              <HiOutlineFunnel className="h-4 w-4" />
+              Filters
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-6 lg:gap-8">

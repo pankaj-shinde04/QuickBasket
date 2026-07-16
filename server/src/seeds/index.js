@@ -26,22 +26,6 @@ const DEMO_USERS = [
     role: ROLES.SHOP_OWNER,
     status: USER_STATUS.ACTIVE,
   },
-  {
-    firstName: 'Alex',
-    lastName: 'Admin',
-    email: 'admin@quickbasket.com',
-    password: 'Test@1234',
-    role: ROLES.ADMIN,
-    status: USER_STATUS.ACTIVE,
-  },
-  {
-    firstName: 'Pankaj',
-    lastName: 'Shinde',
-    email: 'pankajshinde2434@gmail.com',
-    password: 'Test@1234',
-    role: ROLES.SHOP_OWNER,
-    status: USER_STATUS.ACTIVE,
-  },
 ]
 
 async function seed() {

@@ -7,16 +7,25 @@ import {
   HiOutlineEyeSlash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getPostAuthPath, ROLES } from '../../constants/roles'
 
-export default function LoginForm({ onForgotPassword }) {
+export default function LoginForm({ onEmailChange, initialEmail = '' }) {
   const navigate = useNavigate()
   const { login, getShopOwnerRedirect } = useAuth()
-  const [email, setEmail] = useState('')
+  const { success, error: toastError } = useToast()
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Allow parent (Auth.jsx) to pre-fill email from DemoAccounts
+  const handleEmailChange = (val) => {
+    setEmail(val)
+    onEmailChange?.(val)
+  }
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,6 +34,7 @@ export default function LoginForm({ onForgotPassword }) {
 
     try {
       const session = await login({ email, password })
+      success(`Welcome back!`, 'Logged in')
       const path =
         session.role === ROLES.SHOP_OWNER
           ? await getShopOwnerRedirect(session)
@@ -32,6 +42,7 @@ export default function LoginForm({ onForgotPassword }) {
       navigate(path, { replace: true })
     } catch (err) {
       setError(err.message)
+      toastError(err.message, 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -54,7 +65,7 @@ export default function LoginForm({ onForgotPassword }) {
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="you@example.com"
             className="w-full rounded-xl border border-neutral-border bg-white py-3 pl-12 pr-4 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
@@ -62,17 +73,10 @@ export default function LoginForm({ onForgotPassword }) {
       </div>
 
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
+        <div className="mb-1.5">
           <label htmlFor="login-password" className="text-sm font-medium text-text-muted">
             Password
           </label>
-          <button
-            type="button"
-            onClick={onForgotPassword}
-            className="text-sm font-medium text-primary hover:text-primary-dark"
-          >
-            Forgot password?
-          </button>
         </div>
         <div className="relative">
           <HiOutlineLockClosed className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />

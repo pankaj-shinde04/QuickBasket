@@ -15,6 +15,7 @@ import CustomerFooter from '../../components/customer/CustomerFooter'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
 import { apiRequest, getAuthToken } from '../../services/api'
+import { useToast } from '../../context/ToastContext'
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&h=80&fit=crop'
 
@@ -22,6 +23,7 @@ export default function CustomerCheckout() {
   const { items, subtotal, serviceFee, total, clearCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { success, error: toastError, warning } = useToast()
 
   const freeDelivery = subtotal >= 500
   const deliveryFee = freeDelivery ? 0 : 49
@@ -49,7 +51,9 @@ export default function CustomerCheckout() {
   const handlePlaceOrder = async () => {
     if (items.length === 0) return
     if (!form.fullName || !form.phone || !form.street || !form.city || !form.state || !form.postal) {
-      setError('Please fill in all required delivery address fields.')
+      const msg = 'Please fill in all required delivery address fields.'
+      setError(msg)
+      toastError(msg, 'Missing fields')
       return
     }
 
@@ -151,8 +155,10 @@ export default function CustomerCheckout() {
 
                 clearCart()
                 setSuccess(orderRes.data.order.displayId)
+                success(`Order #${orderRes.data.order.displayId} placed! Payment received.`, 'Order placed 🎉')
               } catch (err) {
                 setError(err.message || 'Payment verification failed. Please contact support.')
+                toastError(err.message || 'Payment verification failed.', 'Payment error')
               } finally {
                 setPlacing(false)
               }
@@ -169,6 +175,7 @@ export default function CustomerCheckout() {
               ondismiss: function () {
                 setPlacing(false)
                 setError('Payment cancelled by user.')
+                warning('Payment was cancelled. Your order was not placed.', 'Payment cancelled')
               },
             },
           }
@@ -179,6 +186,7 @@ export default function CustomerCheckout() {
         script.onerror = () => {
           setPlacing(false)
           setError('Failed to load payment gateway. Please try again.')
+          toastError('Failed to load payment gateway.', 'Gateway error')
         }
         document.body.appendChild(script)
       } else {
@@ -220,10 +228,12 @@ export default function CustomerCheckout() {
 
         clearCart()
         setSuccess(res.data.order.displayId)
+        success(`Order #${res.data.order.displayId} placed successfully!`, 'Order placed 🎉')
         setPlacing(false)
       }
     } catch (err) {
       setError(err.message || 'Failed to place order. Please try again.')
+      toastError(err.message || 'Failed to place order.', 'Order failed')
       setPlacing(false)
     }
   }

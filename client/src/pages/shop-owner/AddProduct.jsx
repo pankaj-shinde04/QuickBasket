@@ -2,9 +2,6 @@ import { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   HiOutlineMagnifyingGlass,
-  HiOutlineBell,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineUserCircle,
   HiOutlineCloudArrowUp,
   HiOutlineBookmark,
   HiOutlineXCircle,
@@ -15,10 +12,12 @@ import { createProduct } from '../../services/productService'
 import { getCategories, createCategory } from '../../services/categoryService'
 import { getAuthToken } from '../../services/api'
 import { useProducts } from '../../context/ProductContext'
+import { useToast } from '../../context/ToastContext'
 
 export default function ShopOwnerAddProduct() {
   const navigate = useNavigate()
   const { refresh } = useProducts()
+  const { success, error: toastError } = useToast()
   const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({
@@ -68,7 +67,7 @@ export default function ShopOwnerAddProduct() {
       setShowNewCategoryForm(false)
     } catch (err) {
       console.error('Category creation error:', err)
-      alert(err.message || 'Failed to create category')
+      toastError(err.message || 'Failed to create category', 'Category error')
     } finally {
       setCreatingCategory(false)
     }
@@ -125,9 +124,11 @@ export default function ShopOwnerAddProduct() {
 
       await createProduct(token, formData)
       await refresh()
+      success('Product added successfully!', 'Product saved')
       navigate('/dashboard/shop-owner/inventory')
     } catch (err) {
       setError(err.message || 'Failed to add product. Please try again.')
+      toastError(err.message || 'Failed to add product.', 'Save failed')
     } finally {
       setLoading(false)
     }
@@ -152,13 +153,6 @@ export default function ShopOwnerAddProduct() {
               className="w-48 rounded-full border border-neutral-border bg-white py-2 pl-9 pr-4 text-sm outline-none"
             />
           </div>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineBell className="h-5 w-5" />
-          </button>
-          <button type="button" className="rounded-full p-2 text-text-muted hover:bg-white">
-            <HiOutlineQuestionMarkCircle className="h-5 w-5" />
-          </button>
-          <HiOutlineUserCircle className="h-8 w-8 text-text-muted" />
         </div>
       </div>
 

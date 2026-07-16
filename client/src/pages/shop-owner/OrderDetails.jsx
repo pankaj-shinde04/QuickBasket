@@ -17,6 +17,7 @@ import {
 import { MdOutlineRestaurant } from 'react-icons/md'
 import ShopOwnerTopBar from '../../components/shop-owner/ShopOwnerTopBar'
 import { apiRequest, getAuthToken } from '../../services/api'
+import { useToast } from '../../context/ToastContext'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -73,6 +74,7 @@ function Skeleton() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ShopOwnerOrderDetails() {
   const { orderId } = useParams()
+  const { success, error: toastError } = useToast()
 
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -117,8 +119,10 @@ export default function ShopOwnerOrderDetails() {
       setCurrentStatus(newStatus)
       setOrder((prev) => (prev ? { ...prev, status: newStatus } : prev))
       setUpdateMsg({ type: 'success', text: `Status updated to "${newStatus}"` })
+      success(`Order status updated to "${newStatus}".`, 'Status updated')
     } catch (err) {
       setUpdateMsg({ type: 'error', text: err.message || 'Failed to update status.' })
+      toastError(err.message || 'Failed to update status.', 'Update failed')
     } finally {
       setUpdating(false)
       setTimeout(() => setUpdateMsg(null), 3000)

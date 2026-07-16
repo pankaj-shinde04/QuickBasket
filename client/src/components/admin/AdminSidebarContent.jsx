@@ -58,11 +58,11 @@ export default function AdminSidebarContent({ onNavigate, showBrand = true }) {
 
       <div className="border-t border-neutral-border p-4">
         <div className="mb-3 flex items-center gap-3">
-          <img
-            src={`https://i.pravatar.cc/150?u=${user?.email}`}
-            alt={fullName}
-            className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-primary-light"
-          />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light ring-2 ring-primary/20">
+            <span className="text-sm font-bold text-primary">
+              {`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || 'A'}
+            </span>
+          </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-text-dark">{fullName}</p>
             <p className="truncate text-xs font-medium text-primary">Super Admin</p>

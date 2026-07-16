@@ -11,6 +11,7 @@ import {
 import CustomerFooter from '../../components/customer/CustomerFooter'
 import { useAuth } from '../../context/AuthContext'
 import { getAuthToken, apiFormRequest, apiRequest } from '../../services/api'
+import { useToast } from '../../context/ToastContext'
 
 // ── Reusable sub-components ───────────────────────────────────────────────────
 function Field({ label, children }) {
@@ -65,6 +66,7 @@ function Section({ icon: Icon, title, subtitle, children }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function CustomerSettings() {
   const { user, setUser } = useAuth()
+  const { success, error: toastError } = useToast()
   const fileInputRef = useRef(null)
 
   // ── Profile state ──────────────────────────────────────────────────────────
@@ -101,8 +103,10 @@ export default function CustomerSettings() {
       if (setUser && res.data?.user) setUser(res.data.user)
       setAvatarFile(null)
       setProfileStatus({ type: 'success', msg: 'Profile updated successfully.' })
+      success('Your profile has been updated.', 'Profile saved')
     } catch (err) {
       setProfileStatus({ type: 'error', msg: err.message || 'Failed to update profile.' })
+      toastError(err.message || 'Failed to update profile.', 'Save failed')
     } finally {
       setProfileLoading(false)
     }
@@ -133,9 +137,11 @@ export default function CustomerSettings() {
         body: { currentPassword: passwords.currentPassword, newPassword: passwords.newPassword },
       })
       setPwStatus({ type: 'success', msg: 'Password changed successfully.' })
+      success('Your password has been changed.', 'Password updated')
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
       setPwStatus({ type: 'error', msg: err.message || 'Failed to change password.' })
+      toastError(err.message || 'Failed to change password.', 'Change failed')
     } finally {
       setPwLoading(false)
     }

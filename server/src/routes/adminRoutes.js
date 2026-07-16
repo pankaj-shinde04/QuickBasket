@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+  getPlatformStats,
   createAdmin,
   listAdmins,
   listUsers,
@@ -19,11 +20,14 @@ import {
 } from '../validators/adminValidators.js'
 import { validate } from '../middleware/validate.js'
 import { authenticate, authorize } from '../middleware/auth.js'
+import { asyncHandler } from '../middleware/asyncHandler.js'
 import { ROLES } from '../constants/roles.js'
 
 const router = Router()
 
 router.use(authenticate, authorize(ROLES.ADMIN))
+
+router.get('/platform-stats', asyncHandler(getPlatformStats))
 
 router.post('/admins', createAdminValidator, validate, createAdmin)
 router.get('/admins', listAdmins)

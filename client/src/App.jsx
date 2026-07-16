@@ -8,20 +8,19 @@ import { ROLES } from './constants/roles'
 import Home from './pages/Home'
 import About from './pages/About'
 import Auth from './pages/Auth'
+import ResetPassword from './pages/ResetPassword'
 import CustomerDashboard from './pages/CustomerDashboard'
 import CustomerOrderHistory from './pages/customer/OrderHistory'
 import CustomerOrderTracking from './pages/customer/OrderTracking'
 import CustomerCart from './pages/customer/Cart'
 import CustomerCheckout from './pages/customer/Checkout'
 import CustomerSettings from './pages/customer/Settings'
-import CustomerPlaceholder from './pages/customer/Placeholder'
 import ShopOwnerDashboard from './pages/ShopOwnerDashboard'
 import ShopOwnerInventory from './pages/shop-owner/Inventory'
 import ShopOwnerAddProduct from './pages/shop-owner/AddProduct'
 import ShopOwnerEditProduct from './pages/shop-owner/EditProduct'
 import ShopOwnerOrders from './pages/shop-owner/Orders'
 import ShopOwnerOrderDetails from './pages/shop-owner/OrderDetails'
-import ShopOwnerPlaceholder from './pages/shop-owner/Placeholder'
 import ShopOwnerAnalytics from './pages/shop-owner/Analytics'
 import RegisterShop from './pages/shop-owner/RegisterShop'
 import ShopOwnerSettings from './pages/shop-owner/Settings'
@@ -49,6 +48,9 @@ export default function App() {
           </GuestRoute>
         }
       />
+
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
+
 
       <Route
         path="/dashboard/customer"

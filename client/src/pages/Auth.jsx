@@ -5,7 +5,6 @@ import { ROLES, SIGNUP_ROLE_CONFIG } from '../constants/roles'
 import RoleSelector from '../components/auth/RoleSelector'
 import LoginForm from '../components/auth/LoginForm'
 import SignUpForm from '../components/auth/SignUpForm'
-import DemoAccounts from '../components/auth/DemoAccounts'
 
 const TABS = {
   login: 'login',
@@ -78,8 +77,6 @@ export default function Auth() {
           ) : (
             <SignUpForm role={role} />
           )}
-
-          <DemoAccounts />
         </div>
 
         {/* Footer badges */}

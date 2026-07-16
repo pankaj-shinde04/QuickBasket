@@ -19,9 +19,20 @@ function StarRating({ rating }) {
 }
 
 export default function ProductCard({ product }) {
+  // Normalize to a plain cart-compatible object
+  const cartProduct = {
+    id:       product._id ?? product.id,
+    name:     product.name,
+    price:    Number(product.price),
+    image:    product.image,
+    unit:     product.unit,
+    stock:    product.stock,
+    category: product.category,
+  }
+
   return (
     <article className="group overflow-hidden rounded-xl border border-neutral-border bg-white transition-shadow hover:shadow-lg lg:rounded-2xl">
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${cartProduct.id}`} className="block">
         <div className="relative overflow-hidden bg-neutral p-4 sm:p-5" data-product-image>
           <img
             src={product.image}
@@ -38,17 +49,18 @@ export default function ProductCard({ product }) {
           </h3>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-bold text-primary sm:text-base">
-              {product.price}
-              {product.priceMax && (
-                <span className="font-normal text-text-muted"> – {product.priceMax}</span>
+              ₹{Number(product.price).toFixed(2)}
+              {product.unit && (
+                <span className="text-xs font-normal text-text-muted"> / {product.unit}</span>
               )}
             </p>
-            <StarRating rating={product.rating} />
+            <StarRating rating={product.rating ?? 4} />
           </div>
         </div>
       </Link>
       <div className="px-4 pb-4 sm:px-5 sm:pb-5">
         <AddToCartButton
+          product={cartProduct}
           image={product.image}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-border py-2.5 text-sm font-semibold text-text-dark transition-colors hover:border-primary hover:bg-primary-light hover:text-primary"
         >
@@ -59,5 +71,6 @@ export default function ProductCard({ product }) {
     </article>
   )
 }
+
 
 export { StarRating }

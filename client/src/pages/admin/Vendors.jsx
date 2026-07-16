@@ -12,6 +12,7 @@ import AdminTopBar from '../../components/admin/AdminTopBar'
 import { vendorStatusStyles, vendorFilters } from '../../data/adminData'
 import * as adminApi from '../../services/adminService'
 import { formatJoinDate } from '../../utils/adminUser'
+import { useToast } from '../../context/ToastContext'
 
 const STATUS_FILTER_MAP = {
   'All Statuses': '',
@@ -22,6 +23,7 @@ const STATUS_FILTER_MAP = {
 }
 
 export default function AdminVendors() {
+  const { success, error: toastError } = useToast()
   const [statusFilter, setStatusFilter] = useState('All Statuses')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -73,12 +75,13 @@ export default function AdminVendors() {
   const handleApprove = async (vendorId) => {
     setActionLoading(vendorId)
     setError('')
-
     try {
       await adminApi.approveVendor(vendorId)
       await Promise.all([loadVendors(), loadStats()])
+      success('Vendor approved and notified.', 'Approved')
     } catch (err) {
       setError(err.message)
+      toastError(err.message, 'Approval failed')
     } finally {
       setActionLoading(null)
     }
@@ -87,12 +90,13 @@ export default function AdminVendors() {
   const handleReject = async (vendorId) => {
     setActionLoading(vendorId)
     setError('')
-
     try {
       await adminApi.rejectVendor(vendorId)
       await Promise.all([loadVendors(), loadStats()])
+      success('Vendor has been rejected.', 'Rejected')
     } catch (err) {
       setError(err.message)
+      toastError(err.message, 'Rejection failed')
     } finally {
       setActionLoading(null)
     }
