@@ -15,7 +15,10 @@ const config = {
     secret: jwtSecret || 'dev-secret-change-before-production',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl: process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(',').map((u) => u.trim())
+    : ['http://localhost:5173'],
+
   upload: {
     maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB) || 5,
     dir: process.env.UPLOAD_DIR || 'uploads',
