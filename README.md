@@ -239,7 +239,3 @@ You will get a URL like: https://quickbasket.vercel.app
 | VITE_API_URL | Full backend API URL | Yes |
 
 ---
-
-## 📜 License
-
-MIT
