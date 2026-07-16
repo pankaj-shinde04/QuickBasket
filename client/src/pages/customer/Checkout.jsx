@@ -23,7 +23,7 @@ export default function CustomerCheckout() {
   const { items, subtotal, serviceFee, total, clearCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { success, error: toastError, warning } = useToast()
+  const { success: showSuccess, error: toastError, warning } = useToast()
 
   const freeDelivery = subtotal >= 500
   const deliveryFee = freeDelivery ? 0 : 49
@@ -155,7 +155,7 @@ export default function CustomerCheckout() {
 
                 clearCart()
                 setSuccess(orderRes.data.order.displayId)
-                success(`Order #${orderRes.data.order.displayId} placed! Payment received.`, 'Order placed 🎉')
+                showSuccess(`Order #${orderRes.data.order.displayId} placed! Payment received.`, 'Order placed 🎉')
               } catch (err) {
                 setError(err.message || 'Payment verification failed. Please contact support.')
                 toastError(err.message || 'Payment verification failed.', 'Payment error')
@@ -228,7 +228,7 @@ export default function CustomerCheckout() {
 
         clearCart()
         setSuccess(res.data.order.displayId)
-        success(`Order #${res.data.order.displayId} placed successfully!`, 'Order placed 🎉')
+        showSuccess(`Order #${res.data.order.displayId} placed successfully!`, 'Order placed 🎉')
         setPlacing(false)
       }
     } catch (err) {
