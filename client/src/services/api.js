@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const _rawBase = import.meta.env.VITE_API_URL || ''
+const API_BASE = _rawBase
+  ? _rawBase.replace(/\/api\/?$/, '') + '/api'  // normalize: always ends with /api
+  : '/api'
+
 const TOKEN_KEY = 'quickbasket_token'
 
 export function getAuthToken() {
