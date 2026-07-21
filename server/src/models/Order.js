@@ -13,6 +13,12 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema(
   {
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Shop',
+      index: true,
+      // optional: populated when the order is placed; older orders may not have it
+    },
     displayId: { type: String, unique: true },
     items: { type: [orderItemSchema], required: true },
     deliveryAddress: {

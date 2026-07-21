@@ -75,7 +75,7 @@ export default function Auth() {
           {activeTab === TABS.login ? (
             <LoginForm />
           ) : (
-            <SignUpForm role={role} />
+          <SignUpForm role={role} onSwitchToLogin={() => setActiveTab(TABS.login)} />
           )}
         </div>
 

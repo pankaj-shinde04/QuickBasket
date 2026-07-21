@@ -5,12 +5,14 @@ import {
   HiOutlineLockClosed,
   HiOutlineEye,
   HiOutlineEyeSlash,
+  HiOutlineCheckCircle,
+  HiOutlineEnvelopeOpen,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
-import { getPostAuthPath, ROLES, SHOP_REGISTER_PATH } from '../../constants/roles'
+import { getPostAuthPath, ROLES } from '../../constants/roles'
 
-export default function SignUpForm({ role }) {
+export default function SignUpForm({ role, onSwitchToLogin }) {
   const navigate = useNavigate()
   const { signup } = useAuth()
   const { success: toastSuccess, error: toastError } = useToast()
@@ -21,6 +23,7 @@ export default function SignUpForm({ role }) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -33,17 +36,13 @@ export default function SignUpForm({ role }) {
       const session = await signup({ firstName, lastName, email, password, role })
 
       if (session.pending) {
-        if (session.needsShopRegistration) {
-          navigate(SHOP_REGISTER_PATH, { replace: true })
-          return
-        }
-        const msg = session.message || 'Account pending verification. Check your email.'
-        setSuccess(msg)
-        toastSuccess(msg, 'Account created!')
-        setFirstName('')
-        setLastName('')
-        setEmail('')
-        setPassword('')
+        // Shop owner application submitted — admin must approve before they can log in.
+        // Do NOT navigate; stay on the auth page and show the confirmation message.
+        setSuccess(
+          'Your shop owner application has been submitted! Our admin team will review it shortly. You will receive an email once your account is approved — then you can log in.'
+        )
+        setSubmitted(true)
+        toastSuccess('Application submitted!', 'Check your email')
         return
       }
 
@@ -57,13 +56,59 @@ export default function SignUpForm({ role }) {
     }
   }
 
+  // ── Pending approval confirmation screen ─────────────────────────────────
+  if (submitted) {
+    return (
+      <div className="space-y-5 text-center">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <HiOutlineCheckCircle className="h-9 w-9 text-green-600" />
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-text-dark">Application Submitted!</h3>
+          <p className="mt-1 text-sm text-text-muted">Your shop owner application is under review.</p>
+        </div>
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-4 text-left">
+          <div className="flex gap-3">
+            <HiOutlineEnvelopeOpen className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-semibold">What happens next?</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs">
+                <li>Our admin team will review your application</li>
+                <li>You'll receive an <strong>approval email</strong> once reviewed</li>
+                <li>After approval, log in and complete your shop profile</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-text-muted">
+          Already approved?{' '}
+          <button
+            type="button"
+            onClick={() => setSubmitted(false)}
+            className="font-medium text-primary hover:text-primary-dark"
+          >
+            Back to Sign Up
+          </button>
+          {' '}or{' '}
+          <button
+            type="button"
+            onClick={onSwitchToLogin}
+            className="font-medium text-primary hover:text-primary-dark"
+          >
+            switch to Log In
+          </button>
+          {' '}to sign in.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
-      {success && (
-        <div className="rounded-lg bg-tertiary-light px-4 py-3 text-sm text-tertiary">{success}</div>
       )}
 
       <div className="grid grid-cols-2 gap-4">

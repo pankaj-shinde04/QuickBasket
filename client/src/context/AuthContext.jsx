@@ -89,18 +89,11 @@ export function AuthProvider({ children }) {
     })
 
     if (response.data.pending) {
-      const { user: pendingUser, token } = response.data
-
-      if (token) {
-        saveToken(token)
-        saveSession(pendingUser)
-        setUser(pendingUser)
-      }
-
+      // Do NOT save token or session — pending shop owners cannot use the app
+      // until admin approves them. They sign out and wait for the approval email.
       return {
-        ...pendingUser,
+        ...response.data.user,
         pending: true,
-        needsShopRegistration: response.data.needsShopRegistration,
         message: response.message,
       }
     }

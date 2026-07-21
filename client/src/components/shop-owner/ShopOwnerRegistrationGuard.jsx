@@ -10,11 +10,15 @@ export default function ShopOwnerRegistrationGuard({ children }) {
   const [shopLoading, setShopLoading] = useState(true)
   const [hasShop, setHasShop] = useState(false)
 
+  // Block pending shop owners — they cannot access any shop-owner page until approved
+  const isPending = user?.status === 'pending'
+
   useEffect(() => {
     let cancelled = false
 
     async function loadShop() {
-      if (!isAuthenticated || user?.role !== 'shop_owner') {
+      // If not authenticated, not a shop owner, or still pending, skip the shop fetch
+      if (!isAuthenticated || user?.role !== 'shop_owner' || isPending) {
         setShopLoading(false)
         return
       }
@@ -41,7 +45,7 @@ export default function ShopOwnerRegistrationGuard({ children }) {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, user?.role, user?.id])
+  }, [isAuthenticated, user?.role, user?.id, isPending])
 
   if (loading || shopLoading) {
     return (
@@ -49,6 +53,11 @@ export default function ShopOwnerRegistrationGuard({ children }) {
         <p className="text-sm font-medium text-text-muted">Loading...</p>
       </div>
     )
+  }
+
+  // Pending shop owners must wait for admin approval — send them back to /auth
+  if (isPending) {
+    return <Navigate to="/auth" replace />
   }
 
   const onRegisterPage = location.pathname === SHOP_REGISTER_PATH

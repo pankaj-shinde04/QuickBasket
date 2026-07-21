@@ -73,7 +73,9 @@ export default function App() {
         path="/register-shop"
         element={
           <ProtectedRoute allowedRoles={[ROLES.SHOP_OWNER]}>
-            <RegisterShop />
+            <ShopOwnerRegistrationGuard>
+              <RegisterShop />
+            </ShopOwnerRegistrationGuard>
           </ProtectedRoute>
         }
       />
