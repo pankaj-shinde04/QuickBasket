@@ -7,7 +7,7 @@ import config from '../config/index.js'
 import ApiError from '../utils/ApiError.js'
 import { formatPublicUser } from '../utils/userFormatter.js'
 import { ROLES, SIGNUP_ROLES } from '../constants/roles.js'
-import { sendShopOwnerPendingEmail, sendPasswordResetEmail } from './emailService.js'
+import { sendRegistrationEmail, sendPasswordResetEmail } from './emailService.js'
 
 function createToken(userId) {
   return jwt.sign({ id: userId }, config.jwt.secret, {
@@ -70,15 +70,14 @@ export async function registerUser({ firstName, lastName, email, password, role 
       profileComplete: false,
     })
 
-    void sendShopOwnerPendingEmail(user, shopName)
+    void sendRegistrationEmail(user.email, `${user.firstName} ${user.lastName}`, shopName)
 
-    const token = createToken(user._id)
-
+    // Do NOT issue a JWT — pending shop owners cannot log in until admin approves them.
+    // They will receive an email with a login link once approved.
     return {
       user: formatPublicUser(user),
-      token,
+      token: null,
       pending: true,
-      needsShopRegistration: true,
     }
   }
 
@@ -159,7 +158,7 @@ export async function forgotPassword(email) {
   await user.save()
 
   const resetUrl = `${config.clientUrl}/auth/reset-password?token=${plainToken}`
-  void sendPasswordResetEmail(user, resetUrl)
+  void sendPasswordResetEmail(user.email, `${user.firstName} ${user.lastName}`, resetUrl)
 }
 
 // Reset password — validate token, update password

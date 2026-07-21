@@ -25,8 +25,8 @@ const config = {
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
   },
   email: {
-    resendApiKey: process.env.RESEND_API_KEY || process.env.API_KEY_RESEND || '',
-    from: process.env.EMAIL_FROM || 'QuickBasket <onboarding@resend.dev>',
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASS || '',
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',

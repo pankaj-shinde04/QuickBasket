@@ -4,8 +4,8 @@ import ApiError from '../utils/ApiError.js'
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js'
 import { ROLES } from '../constants/roles.js'
 import {
-  sendShopOwnerApprovedEmail,
-  sendShopOwnerRejectedEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
 } from './emailService.js'
 
 function formatVendor(shop) {
@@ -118,7 +118,7 @@ export async function approveVendor(shopId) {
   owner.status = USER_STATUS.ACTIVE
   await owner.save()
 
-  void sendShopOwnerApprovedEmail(owner, shop.name)
+  void sendApprovalEmail(owner.email, `${owner.firstName} ${owner.lastName}`, shop.name)
 
   return formatVendor(await shop.populate('owner', 'firstName lastName email role status'))
 }
@@ -137,7 +137,7 @@ export async function rejectVendor(shopId) {
   owner.status = USER_STATUS.REJECTED
   await owner.save()
 
-  void sendShopOwnerRejectedEmail(owner, shop.name)
+  void sendRejectionEmail(owner.email, `${owner.firstName} ${owner.lastName}`, shop.name)
 
   return formatVendor(await shop.populate('owner', 'firstName lastName email role status'))
 }

@@ -1,76 +1,61 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import config from '../config/index.js'
 import logger from '../utils/logger.js'
 
-let resendClient = null
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: config.email.user,
+    pass: config.email.pass,
+  },
+})
 
-function getResendClient() {
-  if (!config.email.resendApiKey) {
-    return null
-  }
-
-  if (!resendClient) {
-    resendClient = new Resend(config.email.resendApiKey)
-  }
-
-  return resendClient
-}
-
-export async function sendEmailSafe({ to, subject, html }) {
+async function sendEmailSafe({ to, subject, html }) {
   try {
-    const resend = getResendClient()
-
-    if (!resend) {
-      logger.warn(`Email skipped (Resend not configured): ${subject} -> ${to}`)
-      return
+    if (!config.email.user || !config.email.pass) {
+      logger.warn(`Email skipped (Gmail SMTP not configured): ${subject} -> ${to}`)
+      return { success: false }
     }
 
-    const { error } = await resend.emails.send({
-      from: config.email.from,
+    await transporter.sendMail({
+      from: `"QuickBasket" <${config.email.user}>`,
       to,
       subject,
       html,
     })
 
-    if (error) {
-      logger.error(`Email failed (${subject} -> ${to}): ${error.message}`)
-      return
-    }
-
     logger.info(`Email sent: ${subject} -> ${to}`)
+    return { success: true }
   } catch (error) {
     logger.error(`Email failed (${subject} -> ${to}): ${error.message}`)
+    return { success: false }
   }
 }
 
-export function sendShopOwnerPendingEmail(user, shopName) {
-  const name = `${user.firstName} ${user.lastName}`
-
+export async function sendRegistrationEmail(userEmail, ownerName, shopName) {
   return sendEmailSafe({
-    to: user.email,
-    subject: 'QuickBasket — Shop owner application received',
+    to: userEmail,
+    subject: 'QuickBasket — Shop Owner Application Received',
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-        <h2>Hello ${name},</h2>
-        <p>Thank you for applying to sell on <strong>QuickBasket</strong>.</p>
-        <p>Your shop <strong>${shopName}</strong> is <strong>pending verification</strong> by our admin team.</p>
-        <p>We will email you once your application has been reviewed. You will not be able to log in until your account is approved.</p>
+        <h2>Hello ${ownerName},</h2>
+        <p>Thank you for registering with <strong>QuickBasket</strong>.</p>
+        <p>Your shop <strong>${shopName}</strong> has been received and is <strong>pending admin approval</strong>.</p>
+        <p>You will receive another email once your application has been reviewed.</p>
         <p>— QuickBasket Team</p>
       </div>
     `,
   })
 }
 
-export function sendShopOwnerApprovedEmail(user, shopName) {
-  const name = `${user.firstName} ${user.lastName}`
-
+export async function sendApprovalEmail(userEmail, ownerName, shopName) {
   return sendEmailSafe({
-    to: user.email,
-    subject: 'QuickBasket — Your shop has been approved',
+    to: userEmail,
+    subject: 'Your Shop Has Been Approved 🎉',
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-        <h2>Hello ${name},</h2>
-        <p>Great news! Your shop <strong>${shopName}</strong> has been <strong>approved</strong> on QuickBasket.</p>
+        <h2>Hello ${ownerName},</h2>
+        <p>Congratulations! Your shop <strong>${shopName}</strong> has been <strong>approved</strong> on QuickBasket.</p>
         <p>You can now log in and access your shop owner dashboard.</p>
         <p><a href="${config.clientUrl}/auth">Log in to QuickBasket</a></p>
         <p>— QuickBasket Team</p>
@@ -79,16 +64,14 @@ export function sendShopOwnerApprovedEmail(user, shopName) {
   })
 }
 
-export function sendShopOwnerRejectedEmail(user, shopName) {
-  const name = `${user.firstName} ${user.lastName}`
-
+export async function sendRejectionEmail(userEmail, ownerName, shopName) {
   return sendEmailSafe({
-    to: user.email,
-    subject: 'QuickBasket — Shop owner application update',
+    to: userEmail,
+    subject: 'QuickBasket — Shop Application Update',
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-        <h2>Hello ${name},</h2>
-        <p>Thank you for your interest in selling on QuickBasket.</p>
+        <h2>Hello ${ownerName},</h2>
+        <p>Thank you for applying to QuickBasket.</p>
         <p>After review, your application for <strong>${shopName}</strong> was <strong>not approved</strong> at this time.</p>
         <p>If you believe this was a mistake, please contact our support team.</p>
         <p>— QuickBasket Team</p>
@@ -97,11 +80,9 @@ export function sendShopOwnerRejectedEmail(user, shopName) {
   })
 }
 
-export function sendPasswordResetEmail(user, resetUrl) {
-  const name = `${user.firstName} ${user.lastName}`
-
+export async function sendPasswordResetEmail(userEmail, ownerName, resetUrl) {
   return sendEmailSafe({
-    to: user.email,
+    to: userEmail,
     subject: 'QuickBasket — Reset your password',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
@@ -110,7 +91,7 @@ export function sendPasswordResetEmail(user, resetUrl) {
         </div>
         <div style="background: #ffffff; padding: 32px 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
           <h2 style="margin-top: 0; font-size: 20px;">Reset Your Password</h2>
-          <p>Hello <strong>${name}</strong>,</p>
+          <p>Hello <strong>${ownerName}</strong>,</p>
           <p>We received a request to reset the password for your QuickBasket account. Click the button below to choose a new password.</p>
           <div style="text-align: center; margin: 32px 0;">
             <a href="${resetUrl}"
