@@ -49,6 +49,7 @@ export async function sendRegistrationEmail(userEmail, ownerName, shopName) {
 }
 
 export async function sendApprovalEmail(userEmail, ownerName, shopName) {
+  const clientUrl = Array.isArray(config.clientUrl) ? config.clientUrl[0] : config.clientUrl
   return sendEmailSafe({
     to: userEmail,
     subject: 'Your Shop Has Been Approved 🎉',
@@ -57,7 +58,7 @@ export async function sendApprovalEmail(userEmail, ownerName, shopName) {
         <h2>Hello ${ownerName},</h2>
         <p>Congratulations! Your shop <strong>${shopName}</strong> has been <strong>approved</strong> on QuickBasket.</p>
         <p>You can now log in and access your shop owner dashboard.</p>
-        <p><a href="${config.clientUrl}/auth">Log in to QuickBasket</a></p>
+        <p><a href="${clientUrl}/auth">Log in to QuickBasket</a></p>
         <p>— QuickBasket Team</p>
       </div>
     `,
