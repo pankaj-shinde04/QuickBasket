@@ -1,4 +1,7 @@
 import Shop from '../models/Shop.js'
+import Product from '../models/Product.js'
+import Order from '../models/Order.js'
+import User from '../models/User.js'
 import ApiError from '../utils/ApiError.js'
 import { ROLES } from '../constants/roles.js'
 import { uploadImageBuffer } from './cloudinaryService.js'
@@ -78,4 +81,23 @@ export async function assertShopOwner(user) {
   if (user.role !== ROLES.SHOP_OWNER) {
     throw new ApiError(403, 'Only shop owners can access this resource.')
   }
+}
+
+export async function deleteShop(ownerId) {
+  const shop = await Shop.findOne({ owner: ownerId })
+
+  if (!shop) {
+    throw new ApiError(404, 'Shop not found.')
+  }
+
+  // Delete all products for this shop
+  await Product.deleteMany({ shop: shop._id })
+
+  // Delete all orders for this shop
+  await Order.deleteMany({ shop: shop._id })
+
+  // Delete the shop
+  await Shop.findByIdAndDelete(shop._id)
+
+  return { message: 'Shop and all associated data deleted successfully.' }
 }

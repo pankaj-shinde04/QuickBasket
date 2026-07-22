@@ -18,3 +18,15 @@ export const updateShop = asyncHandler(async (req, res) => {
   const shop = await settingsService.updateShopSettings(req.user._id, req.body, req.file || null)
   res.json({ success: true, message: 'Shop settings updated successfully.', data: { shop } })
 })
+
+// DELETE /api/settings/shop  — delete shop and all associated data
+export const deleteShop = asyncHandler(async (req, res) => {
+  const result = await settingsService.deleteAccount(req.user._id)
+  res.json({ success: true, message: result.message })
+})
+
+// DELETE /api/settings/account  — delete user account and all associated data
+export const deleteAccount = asyncHandler(async (req, res) => {
+  const result = await settingsService.deleteAccount(req.user._id)
+  res.json({ success: true, message: result.message })
+})

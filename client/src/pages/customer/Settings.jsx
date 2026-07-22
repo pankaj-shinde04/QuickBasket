@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   HiOutlineUserCircle,
   HiOutlineLockClosed,
@@ -7,11 +8,13 @@ import {
   HiOutlineXCircle,
   HiOutlineArrowPath,
   HiOutlineCamera,
+  HiOutlineTrash,
 } from 'react-icons/hi2'
 import CustomerFooter from '../../components/customer/CustomerFooter'
 import { useAuth } from '../../context/AuthContext'
 import { getAuthToken, apiFormRequest, apiRequest } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
+import * as shopApi from '../../services/shopService'
 
 // ── Reusable sub-components ───────────────────────────────────────────────────
 function Field({ label, children }) {
@@ -65,7 +68,8 @@ function Section({ icon: Icon, title, subtitle, children }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function CustomerSettings() {
-  const { user, setUser } = useAuth()
+  const { user, setUser, logout } = useAuth()
+  const navigate = useNavigate()
   const { success, error: toastError } = useToast()
   const fileInputRef = useRef(null)
 
@@ -149,6 +153,23 @@ export default function CustomerSettings() {
 
   const displayAvatar = avatarPreview || user?.avatar || null
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This will permanently delete all your orders and account data. This action cannot be undone.')) {
+      return
+    }
+    try {
+      await shopApi.deleteAccount()
+      // Clear local session directly since user is deleted from server
+      localStorage.removeItem('quickbasket_token')
+      localStorage.removeItem('quickbasket_session')
+      setUser(null)
+      navigate('/auth', { replace: true })
+      success('Account deleted successfully.', 'Deleted')
+    } catch (err) {
+      toastError(err.message, 'Deletion failed')
+    }
+  }
 
   return (
     <div>
@@ -310,6 +331,23 @@ export default function CustomerSettings() {
                 </button>
               </div>
             </form>
+          </Section>
+
+          {/* ── Delete Account ── */}
+          <Section icon={HiOutlineTrash} title="Delete Account" subtitle="Permanently delete your account and all associated data">
+            <div className="space-y-4">
+              <p className="text-sm text-text-muted">
+                This action cannot be undone. All your orders and account data will be permanently deleted.
+              </p>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
+              >
+                <HiOutlineTrash className="h-4 w-4" />
+                Delete Account
+              </button>
+            </div>
           </Section>
 
         </div>

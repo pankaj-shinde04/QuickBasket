@@ -7,6 +7,9 @@ import {
   HiOutlineXMark,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
+  HiOutlineTrash,
+  HiOutlineShieldCheck,
+  HiOutlineShieldExclamation,
 } from 'react-icons/hi2'
 import AdminTopBar from '../../components/admin/AdminTopBar'
 import { vendorStatusStyles, vendorFilters } from '../../data/adminData'
@@ -97,6 +100,54 @@ export default function AdminVendors() {
     } catch (err) {
       setError(err.message)
       toastError(err.message, 'Rejection failed')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDelete = async (vendorId) => {
+    if (!confirm('Are you sure you want to delete this vendor? This will permanently delete all their products, orders, and shop data.')) {
+      return
+    }
+    setActionLoading(vendorId)
+    setError('')
+    try {
+      await adminApi.deleteVendor(vendorId)
+      await Promise.all([loadVendors(), loadStats()])
+      success('Vendor and all associated data deleted permanently.', 'Deleted')
+    } catch (err) {
+      setError(err.message)
+      toastError(err.message, 'Deletion failed')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleBan = async (vendorId) => {
+    setActionLoading(vendorId)
+    setError('')
+    try {
+      await adminApi.banVendor(vendorId)
+      await Promise.all([loadVendors(), loadStats()])
+      success('Vendor has been suspended.', 'Suspended')
+    } catch (err) {
+      setError(err.message)
+      toastError(err.message, 'Suspension failed')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleUnban = async (vendorId) => {
+    setActionLoading(vendorId)
+    setError('')
+    try {
+      await adminApi.unbanVendor(vendorId)
+      await Promise.all([loadVendors(), loadStats()])
+      success('Vendor has been activated.', 'Activated')
+    } catch (err) {
+      setError(err.message)
+      toastError(err.message, 'Activation failed')
     } finally {
       setActionLoading(null)
     }
@@ -225,8 +276,48 @@ export default function AdminVendors() {
                                 <HiOutlineXMark className="h-4 w-4" />
                               </button>
                             </>
+                          ) : vendor.status === 'Suspended' ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleUnban(vendor.id)}
+                                className="flex items-center gap-1 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                              >
+                                <HiOutlineShieldCheck className="h-4 w-4" />
+                                {actionLoading === vendor.id ? 'Saving...' : 'Activate'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleDelete(vendor.id)}
+                                className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-60"
+                                aria-label="Delete"
+                              >
+                                <HiOutlineTrash className="h-4 w-4" />
+                              </button>
+                            </>
                           ) : (
-                            <span className="text-xs text-text-muted">No actions</span>
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleBan(vendor.id)}
+                                className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                              >
+                                <HiOutlineShieldExclamation className="h-4 w-4" />
+                                {actionLoading === vendor.id ? 'Saving...' : 'Ban'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionLoading === vendor.id}
+                                onClick={() => handleDelete(vendor.id)}
+                                className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-60"
+                                aria-label="Delete"
+                              >
+                                <HiOutlineTrash className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>

@@ -35,3 +35,17 @@ export function saveShopDraft(formData) {
   formData.append('draft', 'true')
   return shopFormRequest('/shops/register', formData, 'PATCH')
 }
+
+export function deleteShop() {
+  return apiRequest('/settings/shop', {
+    method: 'DELETE',
+    token: getAuthToken(),
+  })
+}
+
+export function deleteAccount() {
+  return apiRequest('/settings/account', {
+    method: 'DELETE',
+    token: getAuthToken(),
+  })
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   HiOutlineUserCircle,
   HiOutlineBuildingStorefront,
@@ -7,10 +8,12 @@ import {
   HiOutlineXCircle,
   HiOutlineCheckCircle,
   HiOutlineArrowPath,
+  HiOutlineTrash,
 } from 'react-icons/hi2'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { useToast } from '../../context/ToastContext'
+import * as shopApi from '../../services/shopService'
 
 // ─── Reusable field ───────────────────────────────────────────────────────────
 function Field({ label, children }) {
@@ -72,7 +75,8 @@ function Section({ icon: Icon, title, subtitle, children }) {
 
 // ════════════════════════════════════════════════════════════════════
 export default function ShopOwnerSettings() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const { shop, updateShop, updateProfile, changePassword } = useShop()
   const { success, error: toastError } = useToast()
 
@@ -188,6 +192,23 @@ export default function ShopOwnerSettings() {
   }
 
   const displayLogo = logoPreview || shop?.logo || null
+
+  const handleDeleteShop = async () => {
+    if (!confirm('Are you sure you want to delete your shop? This will permanently delete all your products, orders, and shop data. This action cannot be undone.')) {
+      return
+    }
+    try {
+      await shopApi.deleteShop()
+      // Clear local session directly since user is deleted from server
+      localStorage.removeItem('quickbasket_token')
+      localStorage.removeItem('quickbasket_session')
+      setUser(null)
+      navigate('/auth', { replace: true })
+      success('Shop deleted successfully.', 'Deleted')
+    } catch (err) {
+      toastError(err.message, 'Deletion failed')
+    }
+  }
 
   return (
     <div className="p-5 sm:p-6 lg:p-8">
@@ -410,6 +431,23 @@ export default function ShopOwnerSettings() {
               </button>
             </div>
           </form>
+        </Section>
+
+        {/* ── Delete Shop ── */}
+        <Section icon={HiOutlineTrash} title="Delete Shop" subtitle="Permanently delete your shop and all associated data">
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              This action cannot be undone. All your products, orders, and shop data will be permanently deleted.
+            </p>
+            <button
+              type="button"
+              onClick={handleDeleteShop}
+              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
+            >
+              <HiOutlineTrash className="h-4 w-4" />
+              Delete Shop
+            </button>
+          </div>
         </Section>
 
       </div>

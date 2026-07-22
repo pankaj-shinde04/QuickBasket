@@ -244,3 +244,32 @@ export async function rejectVendor(req, res) {
     data: { vendor },
   })
 }
+
+export async function deleteVendor(req, res) {
+  const result = await vendorService.deleteVendor(req.params.id)
+
+  res.json({
+    success: true,
+    message: result.message,
+  })
+}
+
+export async function banVendor(req, res) {
+  const vendor = await vendorService.banVendor(req.params.id)
+
+  res.json({
+    success: true,
+    message: 'Vendor suspended successfully.',
+    data: { vendor },
+  })
+}
+
+export async function unbanVendor(req, res) {
+  const vendor = await vendorService.unbanVendor(req.params.id)
+
+  res.json({
+    success: true,
+    message: 'Vendor activated successfully.',
+    data: { vendor },
+  })
+}

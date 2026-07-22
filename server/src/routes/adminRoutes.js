@@ -10,6 +10,9 @@ import {
   getVendorStats,
   approveVendor,
   rejectVendor,
+  deleteVendor,
+  banVendor,
+  unbanVendor,
 } from '../controllers/adminController.js'
 import {
   createAdminValidator,
@@ -39,5 +42,8 @@ router.get('/vendors/stats', getVendorStats)
 router.get('/vendors', listVendorsValidator, validate, listVendors)
 router.patch('/vendors/:id/approve', vendorIdValidator, validate, approveVendor)
 router.patch('/vendors/:id/reject', vendorIdValidator, validate, rejectVendor)
+router.delete('/vendors/:id', vendorIdValidator, validate, deleteVendor)
+router.patch('/vendors/:id/ban', vendorIdValidator, validate, banVendor)
+router.patch('/vendors/:id/unban', vendorIdValidator, validate, unbanVendor)
 
 export default router

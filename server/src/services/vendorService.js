@@ -1,5 +1,7 @@
 import Shop, { SHOP_STATUS } from '../models/Shop.js'
 import User, { USER_STATUS } from '../models/User.js'
+import Product from '../models/Product.js'
+import Order from '../models/Order.js'
 import ApiError from '../utils/ApiError.js'
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js'
 import { ROLES } from '../constants/roles.js'
@@ -144,4 +146,60 @@ export async function rejectVendor(shopId) {
 
 export function buildDefaultShopName(firstName, lastName) {
   return `${firstName.trim()} ${lastName.trim()}'s Shop`
+}
+
+export async function deleteVendor(shopId) {
+  const shop = await getShopWithOwner(shopId)
+
+  // Delete all products for this shop
+  await Product.deleteMany({ shop: shopId })
+
+  // Delete all orders for this shop
+  await Order.deleteMany({ shop: shopId })
+
+  // Delete the shop
+  await Shop.findByIdAndDelete(shopId)
+
+  // Delete or deactivate the user account
+  if (shop.owner) {
+    await User.findByIdAndUpdate(shop.owner._id, { status: USER_STATUS.REJECTED })
+  }
+
+  return { message: 'Vendor and all associated data deleted successfully.' }
+}
+
+export async function banVendor(shopId) {
+  const shop = await getShopWithOwner(shopId)
+
+  if (shop.status === SHOP_STATUS.SUSPENDED) {
+    throw new ApiError(400, 'Vendor is already suspended.')
+  }
+
+  shop.status = SHOP_STATUS.SUSPENDED
+  await shop.save()
+
+  // Also suspend the user account
+  if (shop.owner) {
+    await User.findByIdAndUpdate(shop.owner._id, { status: USER_STATUS.SUSPENDED })
+  }
+
+  return formatVendor(await shop.populate('owner', 'firstName lastName email role status'))
+}
+
+export async function unbanVendor(shopId) {
+  const shop = await getShopWithOwner(shopId)
+
+  if (shop.status !== SHOP_STATUS.SUSPENDED) {
+    throw new ApiError(400, 'Only suspended vendors can be unbanned.')
+  }
+
+  shop.status = SHOP_STATUS.ACTIVE
+  await shop.save()
+
+  // Also activate the user account
+  if (shop.owner) {
+    await User.findByIdAndUpdate(shop.owner._id, { status: USER_STATUS.ACTIVE })
+  }
+
+  return formatVendor(await shop.populate('owner', 'firstName lastName email role status'))
 }

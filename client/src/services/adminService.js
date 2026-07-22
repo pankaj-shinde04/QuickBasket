@@ -70,3 +70,15 @@ export function approveVendor(vendorId) {
 export function rejectVendor(vendorId) {
   return apiRequest(`/admin/vendors/${vendorId}/reject`, withAuth({ method: 'PATCH' }))
 }
+
+export function deleteVendor(vendorId) {
+  return apiRequest(`/admin/vendors/${vendorId}`, withAuth({ method: 'DELETE' }))
+}
+
+export function banVendor(vendorId) {
+  return apiRequest(`/admin/vendors/${vendorId}/ban`, withAuth({ method: 'PATCH' }))
+}
+
+export function unbanVendor(vendorId) {
+  return apiRequest(`/admin/vendors/${vendorId}/unban`, withAuth({ method: 'PATCH' }))
+}

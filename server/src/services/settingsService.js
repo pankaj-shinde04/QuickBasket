@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Shop from '../models/Shop.js'
+import Product from '../models/Product.js'
+import Order from '../models/Order.js'
 import ApiError from '../utils/ApiError.js'
 import { uploadImageBuffer } from './cloudinaryService.js'
 import { formatPublicUser } from '../utils/userFormatter.js'
@@ -82,4 +84,33 @@ export async function updateShopSettings(ownerId, payload, logoFile) {
     profileComplete: shop.profileComplete,
     status: shop.status,
   }
+}
+
+/**
+ * Delete user account and all associated data
+ */
+export async function deleteAccount(userId) {
+  const user = await User.findById(userId)
+  if (!user) throw new ApiError(404, 'User not found.')
+
+  // If user is a shop owner, delete their shop and all associated data
+  if (user.role === 'shop_owner') {
+    const shop = await Shop.findOne({ owner: userId })
+    if (shop) {
+      // Delete all products for this shop
+      await Product.deleteMany({ shop: shop._id })
+      // Delete all orders for this shop
+      await Order.deleteMany({ shop: shop._id })
+      // Delete the shop
+      await Shop.findByIdAndDelete(shop._id)
+    }
+  } else if (user.role === 'customer') {
+    // Delete all orders placed by this customer
+    await Order.deleteMany({ customer: userId })
+  }
+
+  // Delete the user account
+  await User.findByIdAndDelete(userId)
+
+  return { message: 'Account and all associated data deleted successfully.' }
 }
