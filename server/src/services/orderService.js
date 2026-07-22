@@ -13,8 +13,23 @@ export async function placeOrder(customerId, body) {
     throw new Error('Delivery address is required with all required fields.')
   }
 
+  // Get shop ID from the first product (all products should belong to the same shop)
+  const firstProduct = await Product.findById(items[0].productId)
+  if (!firstProduct) throw new Error('Product not found.')
+  const shopId = firstProduct.shop
+
+  // Verify all products belong to the same shop
+  for (const item of items) {
+    const product = await Product.findById(item.productId)
+    if (!product) throw new Error(`Product ${item.productId} not found.`)
+    if (product.shop.toString() !== shopId.toString()) {
+      throw new Error('All products in an order must belong to the same shop.')
+    }
+  }
+
   const orderData = {
     customer: customerId,
+    shop: shopId,
     items,
     deliveryAddress,
     deliveryInstructions: deliveryInstructions || '',
@@ -86,36 +101,36 @@ export async function cancelOrder(customerId, displayId) {
   return order
 }
 
-// Shop Owner: Get all orders (newest first) with customer details
-export async function getAllOrders() {
-  return Order.find()
+// Shop Owner: Get all orders for their shop (newest first) with customer details
+export async function getAllOrders(shopId) {
+  return Order.find({ shop: shopId })
     .populate('customer', 'name email phone')
     .populate('payment')
     .sort({ createdAt: -1 })
     .lean()
 }
 
-// Shop Owner: Get order by displayId
-export async function getOrderByDisplayIdForShopOwner(displayId) {
-  const order = await Order.findOne({ displayId })
+// Shop Owner: Get order by displayId (must belong to their shop)
+export async function getOrderByDisplayIdForShopOwner(displayId, shopId) {
+  const order = await Order.findOne({ displayId, shop: shopId })
     .populate('customer', 'name email phone')
     .populate('payment')
     .lean()
   return order
 }
 
-// Shop Owner: Update order status
-export async function updateOrderStatus(displayId, status) {
-  const order = await Order.findOne({ displayId })
+// Shop Owner: Update order status (must belong to their shop)
+export async function updateOrderStatus(displayId, status, shopId) {
+  const order = await Order.findOne({ displayId, shop: shopId })
   if (!order) throw new Error('Order not found.')
   order.status = status
   await order.save()
   return order
 }
 
-// Shop Owner: Get orders by status
-export async function getOrdersByStatus(status) {
-  return Order.find({ status })
+// Shop Owner: Get orders by status for their shop
+export async function getOrdersByStatus(status, shopId) {
+  return Order.find({ status, shop: shopId })
     .populate('customer', 'name email phone')
     .populate('payment')
     .sort({ createdAt: -1 })

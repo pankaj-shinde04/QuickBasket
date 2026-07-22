@@ -3,6 +3,7 @@ import { authenticate, authorize } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'
+import Shop from '../models/Shop.js'
 import {
   placeOrder,
   getCustomerOrders,
@@ -55,6 +56,10 @@ router.get(
   authenticate,
   authorize(ROLES.SHOP_OWNER),
   asyncHandler(async (req, res) => {
+    const shop = await Shop.findOne({ owner: req.user._id })
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' })
+
+    const shopId = shop._id
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -73,28 +78,33 @@ router.get(
       inventoryAlerts,
     ] = await Promise.all([
       Order.aggregate([
+        { $match: { shop: shopId } },
         { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: startOfToday }, status: { $ne: 'Cancelled' } } },
+        { $match: { shop: shopId, createdAt: { $gte: startOfToday }, status: { $ne: 'Cancelled' } } },
         { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: startOfThisMonth }, status: { $ne: 'Cancelled' } } },
+        { $match: { shop: shopId, createdAt: { $gte: startOfThisMonth }, status: { $ne: 'Cancelled' } } },
         { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
       Order.aggregate([
         {
           $match: {
+            shop: shopId,
             createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
             status: { $ne: 'Cancelled' },
           },
         },
         { $group: { _id: null, revenue: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
-      Order.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: thirtyDaysAgo }, status: { $ne: 'Cancelled' } } },
+        { $match: { shop: shopId } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        { $match: { shop: shopId, createdAt: { $gte: thirtyDaysAgo }, status: { $ne: 'Cancelled' } } },
         {
           $group: {
             _id: {
@@ -109,7 +119,7 @@ router.get(
         { $sort: { '_id.y': 1, '_id.m': 1, '_id.d': 1 } },
       ]),
       Order.aggregate([
-        { $match: { status: { $ne: 'Cancelled' } } },
+        { $match: { shop: shopId, status: { $ne: 'Cancelled' } } },
         { $unwind: '$items' },
         {
           $group: {
@@ -125,6 +135,7 @@ router.get(
         { $limit: 5 },
       ]),
       Product.find({
+        shop: shopId,
         $or: [{ stock: 0 }, { $expr: { $lte: ['$stock', '$lowStockThreshold'] } }],
         isActive: true,
       })
@@ -209,7 +220,9 @@ router.get(
   authenticate,
   authorize(ROLES.SHOP_OWNER),
   asyncHandler(async (req, res) => {
-    const orders = await getAllOrders()
+    const shop = await Shop.findOne({ owner: req.user._id })
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' })
+    const orders = await getAllOrders(shop._id)
     res.json({ success: true, data: { orders } })
   }),
 )
@@ -220,7 +233,9 @@ router.get(
   authenticate,
   authorize(ROLES.SHOP_OWNER),
   asyncHandler(async (req, res) => {
-    const orders = await getOrdersByStatus(req.params.status)
+    const shop = await Shop.findOne({ owner: req.user._id })
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' })
+    const orders = await getOrdersByStatus(req.params.status, shop._id)
     res.json({ success: true, data: { orders } })
   }),
 )
@@ -231,7 +246,9 @@ router.get(
   authenticate,
   authorize(ROLES.SHOP_OWNER),
   asyncHandler(async (req, res) => {
-    const order = await getOrderByDisplayIdForShopOwner(req.params.displayId)
+    const shop = await Shop.findOne({ owner: req.user._id })
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' })
+    const order = await getOrderByDisplayIdForShopOwner(req.params.displayId, shop._id)
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' })
     res.json({ success: true, data: { order } })
   }),
@@ -245,7 +262,9 @@ router.patch(
   asyncHandler(async (req, res) => {
     const { status } = req.body
     if (!status) return res.status(400).json({ success: false, message: 'Status is required.' })
-    const order = await updateOrderStatus(req.params.displayId, status)
+    const shop = await Shop.findOne({ owner: req.user._id })
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' })
+    const order = await updateOrderStatus(req.params.displayId, status, shop._id)
     res.json({ success: true, data: { order } })
   }),
 )

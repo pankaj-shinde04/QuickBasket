@@ -89,10 +89,13 @@ export function AuthProvider({ children }) {
     })
 
     if (response.data.pending) {
-      // Do NOT save token or session — pending shop owners cannot use the app
-      // until admin approves them. They sign out and wait for the approval email.
+      // Save token and session for pending shop owners so they can register their shop
+      const { user: newUser, token } = response.data
+      saveToken(token)
+      saveSession(newUser)
+      setUser(newUser)
       return {
-        ...response.data.user,
+        ...newUser,
         pending: true,
         message: response.message,
       }
@@ -126,8 +129,11 @@ export function AuthProvider({ children }) {
     try {
       const { fetchMyShop } = await import('../services/shopService')
       const response = await fetchMyShop()
-      return getPostAuthPath(user.role, response.data.shop.profileComplete)
-    } catch {
+      const profileComplete = response.data.shop?.profileComplete
+      console.log('Shop data:', response.data.shop, 'profileComplete:', profileComplete)
+      return getPostAuthPath(user.role, profileComplete)
+    } catch (error) {
+      console.log('Shop fetch error:', error)
       return SHOP_REGISTER_PATH
     }
   }, [])

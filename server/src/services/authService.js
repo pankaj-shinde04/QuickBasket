@@ -72,11 +72,11 @@ export async function registerUser({ firstName, lastName, email, password, role 
 
     void sendRegistrationEmail(user.email, `${user.firstName} ${user.lastName}`, shopName)
 
-    // Do NOT issue a JWT — pending shop owners cannot log in until admin approves them.
-    // They will receive an email with a login link once approved.
+    // Issue a JWT so pending shop owners can register their shop profile
+    const token = createToken(user._id)
     return {
       user: formatPublicUser(user),
-      token: null,
+      token,
       pending: true,
     }
   }

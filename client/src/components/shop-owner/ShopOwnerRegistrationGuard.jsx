@@ -8,7 +8,7 @@ export default function ShopOwnerRegistrationGuard({ children }) {
   const { user, isAuthenticated, loading } = useAuth()
   const location = useLocation()
   const [shopLoading, setShopLoading] = useState(true)
-  const [hasShop, setHasShop] = useState(false)
+  const [profileComplete, setProfileComplete] = useState(false)
 
   // Block pending shop owners — they cannot access any shop-owner page until approved
   const isPending = user?.status === 'pending'
@@ -17,8 +17,8 @@ export default function ShopOwnerRegistrationGuard({ children }) {
     let cancelled = false
 
     async function loadShop() {
-      // If not authenticated, not a shop owner, or still pending, skip the shop fetch
-      if (!isAuthenticated || user?.role !== 'shop_owner' || isPending) {
+      // If not authenticated or not a shop owner, skip the shop fetch
+      if (!isAuthenticated || user?.role !== 'shop_owner') {
         setShopLoading(false)
         return
       }
@@ -26,12 +26,12 @@ export default function ShopOwnerRegistrationGuard({ children }) {
       try {
         const response = await shopApi.fetchMyShop()
         if (!cancelled) {
-          // If shop exists (regardless of profileComplete status), allow access
-          setHasShop(!!response.data.shop)
+          // Only allow access if shop profile is complete
+          setProfileComplete(response.data.shop?.profileComplete === true)
         }
       } catch {
         if (!cancelled) {
-          setHasShop(false)
+          setProfileComplete(false)
         }
       } finally {
         if (!cancelled) {
@@ -45,7 +45,7 @@ export default function ShopOwnerRegistrationGuard({ children }) {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, user?.role, user?.id, isPending])
+  }, [isAuthenticated, user?.role, user?.id])
 
   if (loading || shopLoading) {
     return (
@@ -55,18 +55,20 @@ export default function ShopOwnerRegistrationGuard({ children }) {
     )
   }
 
-  // Pending shop owners must wait for admin approval — send them back to /auth
-  if (isPending) {
+  const onRegisterPage = location.pathname === SHOP_REGISTER_PATH
+
+  // Pending shop owners can only access the shop registration page
+  if (isPending && !onRegisterPage) {
     return <Navigate to="/auth" replace />
   }
 
-  const onRegisterPage = location.pathname === SHOP_REGISTER_PATH
-
-  if (!hasShop && !onRegisterPage) {
+  // If profile is not complete, redirect to registration page
+  if (!profileComplete && !onRegisterPage) {
     return <Navigate to={SHOP_REGISTER_PATH} replace />
   }
 
-  if (hasShop && onRegisterPage) {
+  // If profile is complete and on registration page, redirect to dashboard
+  if (profileComplete && onRegisterPage) {
     return <Navigate to="/dashboard/shop-owner" replace />
   }
 
